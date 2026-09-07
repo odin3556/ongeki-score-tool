@@ -1,0 +1,1372 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>オンゲキ レーティングチェッカー</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+  html{-webkit-text-size-adjust:100%;text-size-adjust:100%;}
+  *{box-sizing:border-box;}
+  body{
+    margin:0;background:#f2f4f8;color:#1d2129;
+    font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Hiragino Kaku Gothic ProN",Meiryo,sans-serif;
+    padding:24px 16px 60px;font-size:14px;-webkit-text-size-adjust:100%;text-size-adjust:100%;
+  }
+  .wrap{max-width:960px;margin:0 auto;}
+  h1{font-size:18px;font-weight:700;margin:0 0 4px;color:#07714a;}
+  .sub{color:#5f6673;font-size:12.5px;margin:0 0 16px;line-height:1.6;}
+  .accentbar{height:4px;border-radius:2px;margin:0 0 14px;
+    background:linear-gradient(90deg,#00c274 0%,#00a86b 34%,#0e8f63 68%,#7fd94f 100%);}
+
+  .toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center;}
+  button{font-size:12.5px;border:1px solid #d3d8e2;background:#fff;color:#1d2129;
+    padding:6px 12px;border-radius:6px;cursor:pointer;font-family:inherit;}
+  button:hover{background:#edf7f2;border-color:#00a86b;}
+  button.primary{background:#00875a;color:#fff;border-color:#00875a;}
+  button.primary:hover{background:#00714b;}
+  input[type=file]{display:none;}
+  select,input[type=text],input[type=number],.inp{font-size:12.5px;border:1px solid #d3d8e2;
+    background:#fff;color:#1d2129;padding:5px 8px;border-radius:6px;font-family:inherit;}
+
+  .drop{background:#fff;border:1.5px dashed #ccd3e0;border-radius:8px;
+    padding:20px 14px;text-align:center;color:#5f6673;margin-bottom:10px;}
+  .drop.hot{border-color:#00a86b;color:#1d2129;background:#f2fcf7;}
+  textarea{width:100%;height:70px;background:#fbfcfe;color:#1d2129;border:1px solid #dfe3ec;
+    border-radius:6px;padding:8px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;margin-top:10px;}
+
+  .status{font-size:11.5px;color:#5f6673;margin:6px 0 0;}
+  .status.ok{color:#00875a;}
+  .status.warn{color:#c23b3b;}
+  .status:empty{margin:0;}
+
+  .summary{background:#fff;border:1px solid #dfe3ec;border-radius:8px;padding:14px;margin-bottom:12px;}
+  .summary .top{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;}
+  .summary .pname{font-size:20px;font-weight:700;letter-spacing:.02em;}
+  .summary .pmeta{color:#5f6673;font-size:12px;}
+  .summary .spacer{flex:1;}
+  .rating-label{font-size:11px;color:#5f6673;text-align:right;}
+  .rating-val{font-size:32px;font-weight:800;line-height:1.1;text-align:right;
+    font-variant-numeric:tabular-nums;color:#07714a;}
+  .rating-official{font-size:11px;color:#5f6673;text-align:right;}
+  .bk-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;}
+  .bk{flex:1;min-width:150px;background:#fafbfd;border:1px solid #e6eaf2;border-radius:7px;padding:8px 11px;}
+  .bk .l{font-size:11px;color:#5f6673;}
+  .bk .v{font-size:18px;font-weight:700;font-variant-numeric:tabular-nums;}
+  .bk .d{font-size:11px;color:#8a90a0;font-variant-numeric:tabular-nums;}
+  .bk.new{border-top:3px solid #7fd94f;}
+  .bk.best{border-top:3px solid #00a86b;}
+  .bk.plat{border-top:3px solid #0e6b52;}
+
+  .tabs{display:flex;gap:4px;margin:16px 0 0;border-bottom:1px solid #dfe3ec;flex-wrap:wrap;}
+  .tab{padding:8px 14px;font-size:13px;font-weight:600;color:#5f6673;
+    cursor:pointer;border-bottom:2px solid transparent;user-select:none;}
+  .tab:hover{color:#1d2129;}
+  .tab.active{color:#07714a;border-bottom-color:#00a86b;}
+  .tab .count{color:#9aa0ac;font-weight:400;font-size:11.5px;}
+
+  .panel{display:flex;gap:14px;flex-wrap:wrap;align-items:center;background:#fff;
+    border:1px solid #dfe3ec;border-top:none;padding:10px 14px;font-size:12.5px;}
+  .panel label{display:flex;align-items:center;gap:5px;white-space:nowrap;}
+
+  #captureArea{background:#fff;border:1px solid #dfe3ec;border-top:none;border-radius:0 0 8px 8px;overflow-x:auto;}
+  .table-title{padding:12px 14px 4px;font-size:16px;font-weight:700;background:#fff;color:#07714a;}
+  .table-sub{padding:0 14px 8px;font-size:11.5px;color:#5f6673;background:#fff;}
+  #captureArea.capturing{overflow:visible;}
+  #captureArea.capturing .eval-col{display:none;}
+  #captureArea.capturing .del-col{display:none;}
+  .del{border:none;background:none;color:#c23b3b;cursor:pointer;font-size:12px;padding:2px 4px;}
+  .del:hover{text-decoration:underline;}
+
+  table{border-collapse:collapse;width:100%;min-width:660px;font-size:12.5px;}
+  thead th{font-size:11.5px;font-weight:600;color:#4a5560;text-align:left;
+    padding:7px 9px;border-bottom:2px solid #00a86b;background:#f4faf7;white-space:nowrap;}
+  tbody td{font-size:12.5px;line-height:1.5;padding:7px 9px;border-bottom:1px solid #eef0f5;white-space:nowrap;}
+  tbody tr:nth-child(even){background:#fbfcfe;}
+
+  .num{font-variant-numeric:tabular-nums;font-family:ui-monospace,Menlo,Consolas,monospace;}
+  .rank{font-weight:700;}
+  .muted{color:#9aa0ac;}
+  .gain{color:#00875a;font-weight:700;}
+  .est{color:#9aa0ac;font-style:italic;}
+
+  .dif{font-size:10px;padding:1px 6px;border-radius:3px;color:#fff;font-weight:700;letter-spacing:.04em;
+    border:1px solid transparent;margin-left:4px;vertical-align:middle;}
+  .d-basic{background:#2e9e4f;}
+  .d-advanced{background:#e08b00;}
+  .d-expert{background:#d5325c;}
+  .d-master{background:#8b46e0;}
+  .d-lunatic{background:#fff;color:#111;border-color:#111;}
+  .lamptag{font-size:9px;padding:1px 4px;border-radius:3px;margin-left:4px;font-weight:700;color:#fff;vertical-align:middle;}
+  .lamp-fb{background:#e0a800;}
+  .lamp-fc{background:#2e9e4f;}
+  .lamp-ab{background:#e0a800;}
+
+  .star{color:#00a86b;letter-spacing:-1px;font-size:13px;}
+  .star .off{color:#dcdfe7;}
+
+  .group-row td{background:#eaf6f0;color:#1b4d3a;font-weight:700;font-size:13.5px;
+    padding:7px 9px;border-bottom:1px solid #cfe6da;border-top:1px solid #cfe6da;border-left:3px solid #00a86b;}
+  .group-row .cnt{color:#8a90a0;font-weight:400;font-size:11px;margin-left:6px;}
+
+  th.sortable{cursor:pointer;user-select:none;}
+  th.sortable:hover{color:#00875a;}
+  .sort-arrow{display:inline-block;width:10px;margin-left:2px;color:#00875a;}
+
+  .img-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);
+    z-index:1000;align-items:center;justify-content:center;padding:16px;}
+  .img-modal.open{display:flex;}
+  .img-modal-inner{background:#fff;border-radius:12px;max-width:95vw;max-height:92vh;
+    display:flex;flex-direction:column;overflow:hidden;box-shadow:0 10px 40px rgba(0,0,0,0.3);}
+  .img-modal-head{display:flex;justify-content:space-between;align-items:center;
+    padding:10px 14px;border-bottom:1px solid #eef0f5;font-weight:700;font-size:13px;}
+  .img-modal-close{border:none;background:none;font-size:16px;cursor:pointer;color:#5f6673;padding:2px 6px;}
+  .img-modal-body{overflow:auto;padding:10px;display:flex;align-items:center;justify-content:center;background:#f2f4f8;}
+  .img-modal-body img{max-width:88vw;max-height:70vh;object-fit:contain;border:1px solid #dfe3ec;border-radius:4px;}
+  .img-modal-hint{padding:10px 14px;font-size:12px;background:#fff8e1;color:#7a5b00;
+    border-top:1px solid #f0e1a8;line-height:1.7;text-align:center;}
+
+  .page-switch{display:flex;gap:6px;margin:0 0 14px;flex-wrap:wrap;}
+  .page-btn{padding:8px 18px;font-size:13.5px;font-weight:700;color:#5f6673;cursor:pointer;
+    border:1px solid #d3d8e2;border-radius:20px;background:#fff;user-select:none;}
+  .page-btn.active{background:#00875a;color:#fff;border-color:#00875a;}
+
+  .goal-create{background:#fff;border:1px solid #dfe3ec;border-radius:8px;padding:14px;margin-bottom:14px;}
+  .goal-h2{margin:0 0 4px;font-size:15px;font-weight:700;color:#07714a;}
+  .goal-hint{margin:0 0 12px;font-size:12px;color:#5f6673;line-height:1.6;}
+  .goal-form{display:flex;gap:10px;flex-wrap:wrap;align-items:center;font-size:12.5px;}
+  .goal-form label{display:flex;align-items:center;gap:5px;white-space:nowrap;}
+  .goal-narrow{width:70px;}
+
+  .goal-card{background:#fff;border:1px solid #dfe3ec;border-radius:10px;padding:14px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,0.04);}
+  .goal-card.done{border-color:#cfe6bf;background:#f6fbf1;}
+  .goal-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;}
+  .goal-card-title{font-size:15px;font-weight:700;}
+  .goal-card-cond{font-size:11.5px;color:#5f6673;margin-top:2px;}
+  .goal-del{border:none;background:none;color:#c23b3b;cursor:pointer;font-size:12px;}
+  .goal-progress-top{display:flex;align-items:baseline;gap:6px;margin-top:10px;}
+  .goal-remain-num{font-size:30px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1;}
+  .goal-total{font-size:14px;color:#8a90a0;font-weight:700;}
+  .goal-pct{margin-left:auto;font-size:13px;color:#07714a;font-weight:700;}
+  .goal-pct .big{font-size:18px;}
+  .goal-bar-wrap{height:8px;background:#e6eaf2;border-radius:5px;overflow:hidden;margin-top:8px;}
+  .goal-bar{height:100%;background:linear-gradient(90deg,#7fd94f,#00a86b);border-radius:5px;transition:width .3s;}
+  .goal-songs{margin-top:12px;max-height:280px;overflow-y:auto;}
+  .goal-song-row{display:flex;align-items:center;gap:8px;padding:7px 4px;border-bottom:1px solid #eef0f5;font-size:12.5px;}
+  .goal-song-row .g-main{flex:1;min-width:0;}
+  .goal-song-row .g-title{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600;}
+  .goal-song-row .g-meta{display:flex;align-items:center;flex-wrap:wrap;gap:4px;margin-top:3px;font-size:11px;color:#5f6673;}
+  .goal-song-row .g-meta .g-const{font-variant-numeric:tabular-nums;}
+  .goal-song-row .g-scores{flex-shrink:0;text-align:right;line-height:1.35;}
+  .goal-song-row .g-num{display:block;font-variant-numeric:tabular-nums;font-family:ui-monospace,Menlo,Consolas,monospace;color:#5f6673;}
+  .goal-song-row .g-need{display:block;color:#c23b3b;font-weight:700;font-variant-numeric:tabular-nums;font-size:11.5px;}
+  .goal-check{width:20px;height:20px;border-radius:4px;border:2px solid #9fd8bd;display:inline-flex;align-items:center;justify-content:center;font-size:13px;color:#fff;flex-shrink:0;cursor:pointer;transition:.12s;}
+  .goal-check:hover{border-color:#5cae3a;background:#eaf6e2;}
+  .goal-check.on{background:#5cae3a;border-color:#5cae3a;}
+  .goal-uncheck{border:1px solid #d3d8e2;background:#fff;color:#5f6673;border-radius:6px;font-size:11px;padding:3px 8px;cursor:pointer;}
+  .goal-uncheck:hover{background:#edf7f2;}
+  .goal-done-msg{color:#5cae3a;font-weight:700;font-size:13px;margin-top:10px;}
+  .goal-empty{color:#8a90a0;font-size:13px;text-align:center;padding:30px 0;}
+
+  pre.code{background:#f6f8fb;border:1px solid #dfe3ec;border-radius:6px;padding:10px 12px;
+    font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10.5px;line-height:1.5;
+    max-height:260px;overflow:auto;white-space:pre;}
+
+  footer{margin-top:16px;color:#5f6673;font-size:11px;line-height:1.8;}
+  footer .legal{margin:14px 0 0;padding-top:12px;border-top:1px solid #dfe3ec;color:#5f6673;}
+  footer .legal a{color:#07714a;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="accentbar"></div>
+  <h1>オンゲキ レーティングチェッカー</h1>
+  <p class="sub">新曲枠・ベスト枠・プラチナスコア枠の対象曲を並べて、次の判定ランクまでのスコアと、そこに乗ったときのレート上昇量を出します。近い曲ほど上のグループに出るので、今日の1曲を選ぶ目安にどうぞ。譜面定数・レート値はスコアデータ側の値を使い、欠けている定数は定数表（reiwa.f5.si）から自動で補完します。</p>
+
+  <div class="page-switch">
+    <div class="page-btn active" data-page="checker">レーティングチェッカー</div>
+    <div class="page-btn" data-page="goal">目標</div>
+    <div class="page-btn" data-page="settings">データ取得</div>
+  </div>
+
+  <div id="checkerPage">
+  <div class="toolbar">
+    <label style="display:inline-block;">
+      <button id="loadBtn" type="button">スコアデータを読込</button>
+      <input type="file" id="jsonFile" accept="application/json,.json,.txt">
+    </label>
+    <button id="saveImg">画像で保存</button>
+    <button id="resetInitial">初期状態にリセット</button>
+    <button id="loadSampleBtn">サンプル読込</button>
+    <span class="status" id="deviceType" style="margin:0;"></span>
+  </div>
+
+  <div class="drop" id="drop">
+    JSONファイルをここにドロップ、または上の「スコアデータを読込」から選択<br>
+    <span style="font-size:11px;">ongeki-score.net で取得したJSON（<code>*_ongeki_log.json</code>）に対応。新曲枠・ベスト枠・プラチナスコア枠を自動で振り分けます</span>
+  </div>
+  <p class="status" id="loadStatus"></p>
+
+  <div id="app" style="display:none;">
+    <div class="summary" id="summary">
+      <div class="top">
+        <div>
+          <div class="pname" id="pName">—</div>
+          <div class="pmeta" id="pMeta"></div>
+        </div>
+        <div class="spacer"></div>
+        <div>
+          <div class="rating-label">RATING (算出)</div>
+          <div class="rating-val" id="pRate">—</div>
+          <div class="rating-official" id="pRateOfficial"></div>
+        </div>
+      </div>
+      <div class="bk-row" id="bkRow"></div>
+    </div>
+
+    <div class="panel">
+      <label>表示する判定ランクの範囲:
+        最低 <select id="rankMin"></select>
+        〜 最高 <select id="rankMax"></select>
+      </label>
+      <span class="status" id="rankFilterStatus" style="margin:0;"></span>
+    </div>
+
+    <div class="tabs" id="tabs"></div>
+
+    <div id="captureArea">
+      <div id="tableTitle" class="table-title"></div>
+      <div id="tableSub" class="table-sub"></div>
+      <table>
+        <thead id="thead"></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+  </div>
+  </div><!-- /checkerPage -->
+
+  <div id="goalPage" style="display:none;">
+    <div id="goalArea">
+      <div class="goal-create">
+        <h2 class="goal-h2">目標を追加</h2>
+        <p class="goal-hint">条件に合う曲をまとめて目標にできます。達成した曲は自動でリストから消え、達成率が上がります。先に「レーティングチェッカー」でスコアデータを読み込んでおいてください。対象は全譜面（テクニカル）から絞り込みます。</p>
+        <div class="goal-form">
+          <label>目標名 <input type="text" id="goalName" class="inp" placeholder="例: 定数14をSSS"></label>
+          <label>対象の枠
+            <select id="goalScope" class="inp">
+              <option value="all">全曲（全譜面）</option>
+              <option value="新曲枠">新曲枠</option>
+              <option value="ベスト枠">ベスト枠</option>
+            </select>
+          </label>
+          <label>定数 <input type="number" step="0.1" id="goalConstMin" class="inp goal-narrow" placeholder="下限"> 〜 <input type="number" step="0.1" id="goalConstMax" class="inp goal-narrow" placeholder="上限"></label>
+          <label>難易度
+            <select id="goalDiff" class="inp">
+              <option value="">すべて</option>
+              <option value="basic">BASIC</option><option value="advanced">ADVANCED</option>
+              <option value="expert">EXPERT</option><option value="master">MASTER</option><option value="lunatic">LUNATIC</option>
+            </select>
+          </label>
+          <label>達成基準
+            <select id="goalKind" class="inp">
+              <option value="rank">ランク以上</option>
+              <option value="score">スコア以上</option>
+            </select>
+          </label>
+          <label id="goalRankWrap">ランク <select id="goalRank" class="inp"></select></label>
+          <label id="goalScoreWrap" style="display:none;">スコア <input type="number" step="1" id="goalScore" class="inp" placeholder="1007500"></label>
+          <button class="primary" id="goalAddBtn">この条件で目標を作成</button>
+        </div>
+        <p class="goal-hint" style="margin:8px 0 0;">定数の上限・下限は空欄でもOK（その場合は定数で絞りません）。定数が未確定の曲は、定数範囲を指定するとその条件では対象外になります。</p>
+        <p class="status" id="goalStatus"></p>
+      </div>
+      <div id="goalList"></div>
+    </div>
+  </div><!-- /goalPage -->
+
+  <div id="settingsPage" style="display:none;">
+    <p class="goal-hint" style="margin:0 0 14px;">
+      スコアの取得には、<a href="https://ongeki-score.net/" target="_blank" rel="noopener noreferrer">ongeki-score.net</a> のスコアデータを取得するブックマークレットを使います。<strong>①のブックマークレット</strong>を登録し、自分のユーザーページで実行するだけで、このツールに読み込める <code>*_ongeki_log.json</code> がダウンロードされます。JSONには譜面定数・レート値が含まれ、欠けている定数だけを<strong>③の定数表</strong>で自動補完します。ブックマークレットがうまく動かない場合は <strong>②のコンソール貼り付け</strong>をお使いください（どちらも取得内容は同じです）。
+    </p>
+
+    <div class="goal-create">
+      <h2 class="goal-h2">① データ取得ブックマークレット（おすすめ）</h2>
+      <p class="goal-hint">
+        <a href="https://ongeki-score.net/" target="_blank" rel="noopener noreferrer">ongeki-score.net</a> の <code>/rating</code>（新曲・ベスト・プラチナ枠）と <code>/technical</code>（全譜面・プロフィール）を取得し、このツールに読み込めるJSONファイルとしてダウンロードするブックマークレットです。APIトークンなどの入力は不要です。
+      </p>
+      <p style="text-align:center;margin:16px 0;">
+        <a id="bookmarkletLink" href="javascript:(async function(){function x(e){return e?String(e.innerText||e.textContent||'').replace(/\s+/g,' ').trim():'';}function n(s){if(s==null)return null;var v=String(s).replace(/[^0-9.\-]/g,'');if(v===''||v==='-'||v==='.')return null;var m=Number(v);return isNaN(m)?null:m;}function mr(a){if(!a)return{musicId:null,diff:null};var m=/\/music\/(\d+)\/(\w+)/.exec(a.getAttribute('href')||'');return m?{musicId:Number(m[1]),diff:m[2]}:{musicId:null,diff:null};}function hd(doc,t){var l=Array.prototype.slice.call(doc.querySelectorAll('h3, table')),i=l.indexOf(t);for(var j=i-1;j&gt;=0;j--){if(l[j].tagName==='H3')return x(l[j]);}return '';}function pr(doc){var T=doc.querySelectorAll('table'),o={統計:[],新曲枠:[],ベスト枠:[],プラチナスコア枠:[]};if(!T.length)return o;var st=T[0].rows;for(var i=1;i&lt;st.length;i++){var c=st[i].cells;if(c.length&lt;7)continue;o.統計.push({枠:x(c[0]),平均値:n(x(c[1])),対象曲数:n(x(c[2])),Max:n(x(c[3])),Min:n(x(c[4])),合計レート値:n(x(c[5])),レート寄与値:n(x(c[6]))});}for(var t=1;t&lt;T.length;t++){var tb=T[t],key=hd(doc,tb);if(!o[key])continue;var plat=key==='プラチナスコア枠',rows=tb.rows;for(var r=0;r&lt;rows.length;r++){var ce=rows[r].cells;if(ce.length&lt;7)continue;var a=ce[1].querySelector?ce[1].querySelector('a'):null;if(!a)continue;var rf=mr(a),rec={順位:n(x(ce[0])),曲名:x(a),musicId:rf.musicId,diff:rf.diff,Dif:x(ce[2]),定数:n(x(ce[3])),定数推定:!!ce[3].querySelector('.estimated-rating'),レート値:n(x(ce[6])),レート推定:!!ce[6].querySelector('.estimated-rating')};if(plat){rec.プラチナスコア=n(x(ce[4]));rec['☆']=n(x(ce[5]));}else{rec.スコア=n(x(ce[4]));rec.ランプ=x(ce[5]);}o[key].push(rec);}}return o;}function pt(doc){var T=doc.querySelectorAll('table'),tg=null,b=0;for(var i=0;i&lt;T.length;i++){if(T[i].rows.length&gt;b){b=T[i].rows.length;tg=T[i];}}if(!tg)return [];var o=[],rows=tg.rows;for(var r=0;r&lt;rows.length;r++){var tr=rows[r],td=tr.querySelector('td.sort_title');if(!td)continue;var a=td.querySelector('a'),rf=mr(a);var sk=function(cls){var d=tr.querySelector('td.'+cls);if(!d)return null;var k=d.querySelector('span.sort-key');return n(x(k||d));};var rw=function(cls){var d=tr.querySelector('td.'+cls);return d?x(d):null;};var rt=tr.querySelector('td.sort_rate');o.push({曲名:a?x(a):x(td),musicId:rf.musicId,diff:rf.diff,難易度:rw('sort_raw_difficulty'),定数:n(x(tr.querySelector('td.sort_lv'))),スコア:sk('sort_ts'),次ランクまで:sk('sort_nts'),ランク:rw('sort_raw_technical_rank'),ランプ:rw('sort_raw_lamp'),バトルランク:rw('sort_raw_battle_rank'),レート値:rt?n(x(rt)):null,更新日:rw('sort_update')});}return o;}function pp(doc){var p={},T=doc.querySelectorAll('table');if(!T.length)return p;var rows=T[0].rows;for(var i=0;i&lt;rows.length;i++){var c=rows[i].cells;if(c.length&gt;=2)p[x(c[0])]=x(c[1]);}return p;}function g(u){return fetch(u,{credentials:'same-origin'}).then(function(res){if(!res.ok)throw new Error('HTTP '+res.status+' '+u);return res.text();}).then(function(h){return new DOMParser().parseFromString(h,'text/html');});}function pd(v){return String(v).padStart(2,'0');}var m=location.pathname.match(/\/user\/(\d+)/);if(!m){alert('ongeki-score.net のユーザーページ（/user/数字/…）を開いた状態で実行してください。現在地: '+location.href);return;}var base='/user/'+m[1],result={取得元:'ongeki-score.net',userId:Number(m[1]),取得日時:new Date().toISOString(),プロフィール:{},統計:[],新曲枠:[],ベスト枠:[],プラチナスコア枠:[],全譜面:[],errors:[]};try{var rd=(location.pathname===base+'/rating')?document:await g(base+'/rating'),rr=pr(rd);result.統計=rr.統計;result.新曲枠=rr.新曲枠;result.ベスト枠=rr.ベスト枠;result.プラチナスコア枠=rr.プラチナスコア枠;}catch(e){result.errors.push('rating: '+e);}try{var tc=(location.pathname===base+'/technical')?document:await g(base+'/technical');result.全譜面=pt(tc);result.プロフィール=pp(tc);}catch(e){result.errors.push('technical: '+e);}var d=new Date(),fn=''+d.getFullYear()+pd(d.getMonth()+1)+pd(d.getDate())+pd(d.getHours())+pd(d.getMinutes())+'_ongeki_log.json',bl=new Blob([JSON.stringify(result,null,2)],{type:'application/json'}),ur=URL.createObjectURL(bl),an=document.createElement('a');an.href=ur;an.download=fn;document.body.appendChild(an);an.click();an.remove();setTimeout(function(){URL.revokeObjectURL(ur);},5000);alert('取得完了: '+fn+'\n新曲枠'+result.新曲枠.length+' / ベスト枠'+result.ベスト枠.length+' / プラチナ枠'+result.プラチナスコア枠.length+' / 全譜面'+result.全譜面.length+'件'+(result.errors.length?'\n⚠️'+result.errors.join(' / '):''));})();"
+           style="display:inline-block;padding:10px 22px;border-radius:8px;background:#00875a;color:#fff;text-decoration:none;font-weight:700;font-size:13.5px;"
+           title="ドラッグしてブックマークバーに登録、またはクリックしてコードをコピー">
+          🔖 オンゲキスコア取得（ドラッグしてブックマーク登録）
+        </a>
+        <br>
+        <span class="status" id="bookmarkletCopyStatus" style="display:inline-block;margin-top:8px;"></span>
+      </p>
+      <p class="goal-hint">
+        <strong>登録方法①(ドラッグでそのまま登録)</strong>: ブックマークバーを表示した状態で、上のリンクをブックマークバーへ直接ドラッグ&amp;ドロップしてください。<br>
+        <strong>登録方法②(クリックしてコピーし、手動で登録)</strong>: 上のリンクをクリックすると、ブックマークレットのコードがクリップボードにコピーされます（クリックしてもページ内では何も実行されません）。ブラウザで新しいブックマークを作成し、URL欄にコピーしたコードを貼り付けて保存してください。<br>
+        コピーがうまくいかない場合は <a href="bookmarklet/bookmarklet.txt" target="_blank" rel="noopener noreferrer">bookmarklet.txt</a> の中身を直接コピーしてもOKです。<br><br>
+        <strong>使い方</strong>: <a href="https://ongeki-score.net/" target="_blank" rel="noopener noreferrer">ongeki-score.net</a> にログインし、<u>自分のユーザーページ（<code>/user/数字/…</code> ならどのタブでも可）を開いた状態で</u>、登録したブックマークをクリックしてください。数十秒後に <code>*_ongeki_log.json</code> がダウンロードされるので、それを「レーティングチェッカー」タブの「スコアデータを読込」またはドラッグ&amp;ドロップで読み込んでください。<br><br>
+        ソースコードは <a href="ongeki_collect_console.js" target="_blank" rel="noopener noreferrer">ongeki_collect_console.js</a>（読みやすい版）にあります。
+      </p>
+      <p class="goal-hint" style="margin:10px 0 0;background:#fff8e1;border:1px solid #f0e1a8;border-radius:6px;padding:10px 12px;">
+        ⚠️ このブックマークレットは <strong>ongeki-score.net（自分のユーザーページ）を開いた状態</strong>で実行してください。別サイトや <code>chrome://</code> から始まるブラウザ内部ページで実行すると、同一オリジンでの取得ができず失敗します。<br>
+        サイト側のセキュリティ設定（CSP）でブックマークレットがブロックされる場合は、下の「② コンソールに貼り付け」をお使いください。
+      </p>
+    </div>
+
+    <div class="goal-create">
+      <h2 class="goal-h2">② コンソールに貼り付け（別の方法）</h2>
+      <p class="goal-hint">
+        ブックマークレットが動かない環境向けの方法です。取得できる内容は①と同じです。<a href="https://ongeki-score.net/" target="_blank" rel="noopener noreferrer">ongeki-score.net</a> の<strong>自分のユーザーページ</strong>を開いた状態で、DevToolsのコンソールに下のスクリプトを貼り付けて実行してください。
+      </p>
+      <p style="margin:8px 0;">
+        <button type="button" id="copyScriptBtn" class="primary">スクリプトをコピー</button>
+        <a href="ongeki_collect_console.js" target="_blank" rel="noopener noreferrer" style="margin-left:8px;">ongeki_collect_console.js を開く</a>
+        <span class="status" id="copyScriptStatus" style="display:inline-block;margin-left:8px;"></span>
+      </p>
+      <p class="goal-hint" style="margin:0 0 8px;">
+        <strong>手順</strong>: ①「スクリプトをコピー」を押す → ② ユーザーページで <strong>F12（またはCtrl+Shift+I）</strong>でDevToolsを開き「Console」タブへ → ③ コンソールに貼り付けて Enter → ④ 数十秒待つと <code>*_ongeki_log.json</code> がダウンロードされます。<br>
+        ※ 初回はコンソールに貼り付け制限の確認が出ることがあります。指示に従って <code>allow pasting</code> と入力すると貼り付けられるようになります。
+      </p>
+      <pre class="code" id="collectScript">（スクリプトを読み込み中…）</pre>
+    </div>
+
+    <div class="goal-create">
+      <h2 class="goal-h2">③ 譜面定数データについて</h2>
+      <p class="goal-hint">
+        譜面定数・レート値は基本的に ongeki-score.net が算出した値をそのまま使いますが、定数が未確定・欠落している曲を補うため、<a href="https://reiwa.f5.si/" target="_blank" rel="noopener noreferrer">音ゲーツール置き場</a> が公開している定数表（<a href="https://reiwa.f5.si/ongeki_record.json" target="_blank" rel="noopener noreferrer">ongeki_record.json</a>）をこのツールが自動で取得し、musicIdと難易度で結合して補完します。取得した定数表はこのブラウザに一時キャッシュ（localStorage・約1.2MB／7日間）され、次回以降の読み込みを高速化します。<br>
+        補完は「サイト側に定数が無い曲」と「サイト側が推定扱いだが定数表では確定している曲」に限り、サイト側の確定値はそのまま尊重します。
+      </p>
+      <p style="margin:8px 0 0;">
+        <button type="button" id="reloadConstBtn">定数表を再取得（キャッシュ更新）</button>
+        <span class="status" id="constDbStatus" style="display:inline-block;margin-left:8px;"></span>
+      </p>
+    </div>
+
+    <div class="goal-create">
+      <h2 class="goal-h2">レート計算について</h2>
+      <p class="goal-hint" style="margin:0;">
+        総合RATING = 新曲枠・ベスト枠・プラチナスコア枠の各「レート寄与値（枠内レート値の合計 ÷ 50）」の合計として算出しています。各曲の「レート値」は ongeki-score.net が算出した値をそのまま採用します（ベル数由来の成分を含むため、スコアと譜面定数だけでは完全には再現できません）。<br>
+        「加点」は次の判定ランクに到達したときのレート上昇量で、スコア補正の差分だけで決まるため正確に算出できます。プラチナスコア枠のレート値は「譜面定数² ÷ 1000 × ☆数」で、「+1☆で」はその1☆分の上昇量です。オンゲキ Re:Fresh 以降、レート値は SSS+ で頭打ちにならず 1,010,000 まで伸び続けます。
+      </p>
+    </div>
+
+    <div class="goal-create">
+      <h2 class="goal-h2">利用にあたっての注意</h2>
+      <p class="goal-hint" style="margin:0;">
+        スコアの取得は <a href="https://ongeki-score.net/" target="_blank" rel="noopener noreferrer">ongeki-score.net</a> に依存しています。取得したデータはご自身のプレイ記録の範囲でご利用ください。当ツールは非公式のファンツールであり、株式会社セガをはじめとする関係者・関係会社とは一切関係ありません。
+      </p>
+    </div>
+  </div><!-- /settingsPage -->
+
+  <footer>
+    ※ 判定ランク境界値(スコア): D:0 / C:500,000 / B:700,000 / BB:750,000 / BBB:800,000 / A:850,000 / AA:900,000 / AAA:940,000 / S:970,000 / SS:990,000 / SSS:1,000,000 / SSS+:1,007,500 / 理論値:1,010,000<br>
+    ※ RATING = 新曲枠・ベスト枠・プラチナスコア枠の各レート寄与値（枠内レート値の合計 ÷ 50）の合計。ongeki-score.net 上のRATING対象曲をそのまま採用しています。<br>
+    ※ 「レート値」は ongeki-score.net が算出した値です。「加点」は次の判定ランクに到達したときのレート値の上昇量で、スコア補正の差分だけで決まるため正確に算出できます。<br>
+    ※ 定数に「?」が付くものは未確定の推定値です。ongeki-score.net 側に定数が無い曲は、定数表（reiwa.f5.si の ongeki_record.json）から musicId と難易度で結合して補完します。<br>
+    ※ 列見出しをクリックすると並び替えられます（評価グループの区切りは維持されます）。各行の「削除」でその曲を今の枠から外せます。データは消えないので「初期状態にリセット」で戻せます。<br>
+    ※ 画像として保存する際は「評価」列と削除ボタンの列が非表示になります。
+    <p class="legal">
+      当サイトは非公式のファンツールであり、株式会社セガをはじめとする関係者・関係会社とは一切関係ありません。<br>
+      スコアデータの取得には <a href="https://ongeki-score.net/" target="_blank" rel="noopener noreferrer">ongeki-score.net</a> を利用しています。ご利用の際は配布元の方針に従ってください。
+    </p>
+  </footer>
+</div>
+
+<div id="imgModal" class="img-modal">
+  <div class="img-modal-inner">
+    <div class="img-modal-head">
+      <span>画像プレビュー</span>
+      <button id="closeImgModal" class="img-modal-close">✕</button>
+    </div>
+    <div class="img-modal-body"><img id="previewImg" alt="オンゲキレーティング表"></div>
+    <div class="img-modal-hint">
+      <strong>保存方法</strong><br>
+      スマホ: 画像を<strong>長押し</strong>して「画像を保存」<br>
+      PC: 画像を<strong>右クリック</strong>して「名前を付けて画像を保存」
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   判定ランク（オンゲキ Re:Fresh）
+   ============================================================ */
+const RANK_TIERS = [
+  [1010000,'理論値'],[1007500,'SSS+'],[1000000,'SSS'],[990000,'SS'],[970000,'S'],
+  [940000,'AAA'],[900000,'AA'],[850000,'A'],
+  [800000,'BBB'],[750000,'BB'],[700000,'B'],[500000,'C'],[0,'D']
+];
+function rankAt(s){ for(const [t,n] of RANK_TIERS){ if(s >= t) return n; } return 'D'; }
+function nextTarget(s){
+  for(let i = RANK_TIERS.length - 1; i >= 0; i--){ if(RANK_TIERS[i][0] > s) return RANK_TIERS[i][0]; }
+  return null; // 理論値に到達済み
+}
+function rankSortValue(name){
+  const idx = RANK_TIERS.findIndex(([,n]) => n === name);
+  return idx === -1 ? -1 : (RANK_TIERS.length - 1 - idx);
+}
+
+/* ============================================================
+   レート計算（スコア補正差分・実データ由来）
+   ============================================================ */
+function scoreBonus(s){
+  if(s >= 1007500) return 2.1 + (s - 1007500) / 10000;
+  if(s >= 1000000) return 1.5 + (s - 1000000) / 15000;
+  if(s >=  990000) return 0.9 + (s -  990000) / 20000;
+  if(s >=  970000) return -0.1 + (s - 970000) / 20000;
+  if(s >=  940000) return -1.6 + (s - 940000) / 20000;
+  return -4.0;
+}
+function rateGain(cur, next){
+  if(cur == null || next == null) return null;
+  return scoreBonus(next) - scoreBonus(cur);
+}
+// プラチナ: 譜面定数² ÷ 1000 × ☆数
+function platGainPerStar(constant){ return constant == null ? null : constant * constant / 1000; }
+const PLAT_MAX_STAR = 5;
+
+/* ============================================================
+   評価グループ
+   ============================================================ */
+function evaluateScore(gap, maxed){
+  if(maxed) return '🏆 到達済み';
+  if(gap <   500) return '🔥 目前！';
+  if(gap <  2000) return '💪 あと一歩';
+  if(gap <  5000) return '👍 順調';
+  if(gap < 15000) return '🌱 伸びしろあり';
+  return '🎯 じっくり育成';
+}
+function evaluateStar(star){
+  if(star >= PLAT_MAX_STAR) return '🏆 到達済み';
+  if(star === 4) return '🔥 あと1☆でMAX';
+  if(star === 3) return '💪 上位圏';
+  if(star === 2) return '👍 順調';
+  if(star === 1) return '🌱 伸びしろあり';
+  return '🎯 じっくり育成';
+}
+const TIER_ORDER = [
+  '🔥 目前！','🔥 あと1☆でMAX','💪 あと一歩','💪 上位圏',
+  '👍 順調','🌱 伸びしろあり','🎯 じっくり育成','🏆 到達済み'
+];
+
+/* ============================================================
+   状態
+   ============================================================ */
+const TAB_KEYS = ['新曲枠','ベスト枠','プラチナスコア枠'];
+const FRAME_DIVISOR = 50; // 各枠のレート寄与 = 合計 ÷ 50
+let DATA = null;
+let initialSnapshot = null;
+let activeTab = '新曲枠';
+let sortCol = null;
+let sortDir = 'asc';
+const loadStatus = document.getElementById('loadStatus');
+
+const SESSION_DATA_KEY = 'ongeki_session_data_v1';
+function persistSessionData(){
+  try{ sessionStorage.setItem(SESSION_DATA_KEY, JSON.stringify({ DATA, initialSnapshot, activeTab })); }catch(e){}
+}
+function restoreSessionData(){
+  try{
+    const raw = sessionStorage.getItem(SESSION_DATA_KEY);
+    if(!raw) return false;
+    const saved = JSON.parse(raw);
+    if(!saved || !saved.DATA) return false;
+    DATA = saved.DATA;
+    initialSnapshot = saved.initialSnapshot || null;
+    activeTab = saved.activeTab || '新曲枠';
+    return true;
+  }catch(e){ return false; }
+}
+
+/* ============================================================
+   難易度の正規化
+   ============================================================ */
+function normDiff(d){
+  const s = String(d || '').replace(/:/g,'').toLowerCase();
+  if(s.startsWith('bas')) return 'basic';
+  if(s.startsWith('adv')) return 'advanced';
+  if(s.startsWith('exp')) return 'expert';
+  if(s.startsWith('mas')) return 'master';
+  if(s.startsWith('lun')) return 'lunatic';
+  return s;
+}
+function difLabel(diff, dif){
+  if(dif) return dif;
+  const map = {basic:'BASIC',advanced:'ADVANCED',expert:'EXPERT',master:'MASTER',lunatic:'LUNATIC'};
+  return map[normDiff(diff)] || (diff ? String(diff).toUpperCase() : '?');
+}
+
+/* ============================================================
+   譜面定数DB（reiwa.f5.si / ongeki_record.json）を取得して補完
+   ── ongeki-score.net の定数を主とし、欠けている曲だけDBで補う。
+   ── ロジックは maimai-score-tool の ensureConstDB を踏襲。
+   ============================================================ */
+const CONST_DB_URL = 'https://reiwa.f5.si/ongeki_record.json';
+const CONST_CACHE_KEY = 'ongeki_const_db_v1';
+const CONST_CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 7日
+let CONST_BY_ID = null;     // `${id}|${diff}`    -> record
+let CONST_BY_TITLE = null;  // `${title}|${diff}` -> record（musicId欠落時の保険）
+let CONST_READY = null;
+
+async function ensureConstDB(force){
+  if(CONST_BY_ID && !force) return CONST_BY_ID;
+  if(CONST_READY && !force) return CONST_READY;
+  CONST_READY = (async ()=>{
+    let arr = null;
+    if(!force){
+      try{
+        const c = localStorage.getItem(CONST_CACHE_KEY);
+        if(c){ const o = JSON.parse(c); if(o && o.t && (Date.now() - o.t) < CONST_CACHE_TTL && Array.isArray(o.d)) arr = o.d; }
+      }catch(e){}
+    }
+    if(!arr){
+      const res = await fetch(CONST_DB_URL, { cache: 'no-cache' });
+      if(!res.ok) throw new Error('定数表の取得に失敗しました (HTTP ' + res.status + ')');
+      arr = await res.json();
+      try{ localStorage.setItem(CONST_CACHE_KEY, JSON.stringify({ t: Date.now(), d: arr })); }catch(e){}
+    }
+    CONST_BY_ID = new Map(); CONST_BY_TITLE = new Map();
+    arr.forEach(r=>{
+      const dk = normDiff(r.diff);
+      if(r.id != null) CONST_BY_ID.set(r.id + '|' + dk, r);
+      if(r.title != null) CONST_BY_TITLE.set(String(r.title) + '|' + dk, r);
+    });
+    return CONST_BY_ID;
+  })();
+  return CONST_READY;
+}
+
+function lookupConst(musicId, title, diff){
+  const dk = normDiff(diff);
+  let r = null;
+  if(musicId != null && CONST_BY_ID) r = CONST_BY_ID.get(musicId + '|' + dk);
+  if(!r && CONST_BY_TITLE) r = CONST_BY_TITLE.get(String(title) + '|' + dk);
+  if(!r) return null;
+  const c = (r.const != null) ? Number(r.const) : (r.level != null ? Number(r.level) : null);
+  return { const: c, est: !!r.is_unknown, level: r.level ?? null, genre: r.genre || '', version: r.version || '' };
+}
+
+/* DBの定数を DATA に反映（欠け・推定のみ補完し、サイト側の確定値は尊重） */
+function mergeConstDB(){
+  if(!CONST_BY_ID && !CONST_BY_TITLE) return 0;
+  let filled = 0;
+  const apply = (s)=>{
+    const info = lookupConst(s.musicId, s.title, s.diff);
+    if(!info || info.const == null) return;
+    if(s.const == null){ s.const = info.const; s.const_est = info.est; filled++; }
+    else if(s.const_est && !info.est){ s.const = info.const; s.const_est = false; filled++; }
+  };
+  TAB_KEYS.forEach(k=> (DATA.frames[k] || []).forEach(apply));
+  (DATA.allSongs || []).forEach(apply);
+  return filled;
+}
+
+/* ============================================================
+   ongeki-score.net 形式 → 内部曲オブジェクト
+   ============================================================ */
+function isOngekiExport(d){
+  return d && (Array.isArray(d['新曲枠']) || Array.isArray(d['ベスト枠']) || Array.isArray(d['プラチナスコア枠']) || Array.isArray(d['全譜面']));
+}
+function toScoreSong(r){
+  return {
+    title: r['曲名'], musicId: r['musicId'] ?? null,
+    diff: normDiff(r['diff']), Dif: r['Dif'] || '',
+    const: (r['定数'] != null ? Number(r['定数']) : null), const_est: !!r['定数推定'],
+    score: Number(r['スコア']) || 0, lamp: r['ランプ'] || '',
+    rate: (r['レート値'] != null ? Number(r['レート値']) : null),
+  };
+}
+function toPlatSong(r){
+  return {
+    title: r['曲名'], musicId: r['musicId'] ?? null,
+    diff: normDiff(r['diff']), Dif: r['Dif'] || '',
+    const: (r['定数'] != null ? Number(r['定数']) : null), const_est: !!r['定数推定'],
+    platScore: (r['プラチナスコア'] != null ? Number(r['プラチナスコア']) : null),
+    star: Number(r['☆']) || 0,
+    rate: (r['レート値'] != null ? Number(r['レート値']) : null),
+  };
+}
+function toAllSong(r){
+  return {
+    title: r['曲名'], musicId: r['musicId'] ?? null,
+    diff: normDiff(r['diff']), Dif: r['難易度'] || '',
+    const: (r['定数'] != null ? Number(r['定数']) : null), const_est: false,
+    score: Number(r['スコア']) || 0, lamp: r['ランプ'] || '',
+    rank: r['ランク'] || '', rate: (r['レート値'] != null ? Number(r['レート値']) : null),
+  };
+}
+
+function buildFromOngeki(d){
+  const frames = {
+    '新曲枠':           (d['新曲枠'] || []).map(toScoreSong),
+    'ベスト枠':         (d['ベスト枠'] || []).map(toScoreSong),
+    'プラチナスコア枠': (d['プラチナスコア枠'] || []).map(toPlatSong),
+  };
+  const allSongs = (d['全譜面'] || []).map(toAllSong).filter(s => s.title);
+  const p = d['プロフィール'] || {};
+  const profile = {
+    'プレイヤーネーム': p['プレイヤーネーム'] || ('User ' + (d.userId ?? '')),
+    'レベル': p['レベル'] || '',
+    'バトルポイント': p['バトルポイント'] || '',
+    'トータルプレイ': p['トータルプレイ'] || '',
+    'レーティング': p['レーティング'] || '',
+    '取得日時': d['取得日時'] ? new Date(d['取得日時']).toLocaleString('ja-JP',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}) : '',
+  };
+  const officialRating = p['レーティング'] ? Number(String(p['レーティング']).replace(/[^0-9.]/g,'')) : null;
+  return { frames, allSongs, profile, officialRating };
+}
+
+/* 汎用フォールバック（保存済みDATA形式など） */
+function normalizeFrames(d){
+  if(isOngekiExport(d)) return buildFromOngeki(d);
+  if(d && d.frames){
+    return { frames: d.frames, allSongs: d.allSongs || [], profile: d.profile || {}, officialRating: d.officialRating ?? null };
+  }
+  return null;
+}
+
+async function loadJson(raw){
+  let d;
+  try{ d = (typeof raw === 'string') ? JSON.parse(raw) : raw; }
+  catch(err){ loadStatus.textContent = 'JSONの読み込みに失敗しました: ' + err.message; loadStatus.className = 'status warn'; return; }
+
+  const norm = normalizeFrames(d);
+  if(!norm){
+    loadStatus.textContent = '新曲枠・ベスト枠などの曲が見つかりませんでした。ongeki-score.net で取得したJSONを読み込んでください。';
+    loadStatus.className = 'status warn'; return;
+  }
+  const totalSongs = TAB_KEYS.reduce((a,k)=> a + (norm.frames[k] || []).length, 0);
+  if(totalSongs === 0){
+    loadStatus.textContent = '新曲枠・ベスト枠・プラチナスコア枠のいずれにも曲がありませんでした。';
+    loadStatus.className = 'status warn'; return;
+  }
+  DATA = { frames: norm.frames, allSongs: norm.allSongs || [], profile: norm.profile, officialRating: norm.officialRating };
+
+  // 譜面定数表を用意して、欠けている定数を補完（失敗しても続行）
+  let constMsg = '';
+  if(isOngekiExport(d)){
+    loadStatus.textContent = '譜面定数表を読み込み中…（初回は数秒かかります）';
+    loadStatus.className = 'status';
+    try{
+      await ensureConstDB();
+      const filled = mergeConstDB();
+      if(filled > 0) constMsg = `　譜面定数表から${filled}件の定数を補完しました。`;
+    }catch(e){
+      constMsg = `　⚠️ 譜面定数表の取得に失敗しました（${e.message}）。ongeki-score.net 側の定数のみで表示します。`;
+    }
+  }
+
+  initialSnapshot = JSON.parse(JSON.stringify(DATA));
+  sortCol = null; sortDir = 'asc';
+  document.getElementById('rankMin').value = 'D';
+  document.getElementById('rankMax').value = '理論値';
+  activeTab = '新曲枠';
+
+  const p = norm.profile;
+  loadStatus.textContent = `読み込み完了: ${p['プレイヤーネーム'] || 'Player'} / RATING ${p['レーティング'] || '-'} / ${totalSongs}曲` + constMsg;
+  loadStatus.className = constMsg.includes('⚠️') ? 'status warn' : 'status ok';
+  document.getElementById('app').style.display = '';
+  renderSummary();
+  render();
+  persistSessionData();
+}
+
+function loadSample(){
+  const sample = {
+    取得元: 'sample', userId: 0, 取得日時: new Date().toISOString(),
+    プロフィール: { プレイヤーネーム:'サンプル', レベル:'120', バトルポイント:'—', トータルプレイ:'—', レーティング:'17.00' },
+    新曲枠: [
+      {順位:1,曲名:'サンプル新曲A',musicId:1,diff:'master',Dif:'MASTER',定数:14.7,定数推定:false,スコア:1008200,ランプ:'FB',レート値:16.80},
+      {順位:2,曲名:'サンプル新曲B',musicId:2,diff:'master',Dif:'MASTER',定数:14.2,定数推定:false,スコア:1002500,ランプ:'FC',レート値:15.70},
+    ],
+    ベスト枠: [
+      {順位:1,曲名:'サンプル旧曲A',musicId:3,diff:'master',Dif:'MASTER',定数:15.0,定数推定:false,スコア:1009000,ランプ:'AB',レート値:17.40},
+      {順位:2,曲名:'サンプル旧曲B',musicId:4,diff:'lunatic',Dif:'LUNATIC',定数:14.6,定数推定:true,スコア:1005800,ランプ:'FC',レート値:16.30},
+    ],
+    プラチナスコア枠: [
+      {順位:1,曲名:'サンプルプラチナA',musicId:5,diff:'master',Dif:'MASTER',定数:14.8,定数推定:false,プラチナスコア:12800,'☆':4,レート値:0.876},
+      {順位:2,曲名:'サンプルプラチナB',musicId:6,diff:'master',Dif:'MASTER',定数:14.0,定数推定:false,プラチナスコア:11200,'☆':2,レート値:0.392},
+    ],
+    全譜面: [
+      {曲名:'サンプル新曲A',musicId:1,diff:'master',難易度:'MASTER',定数:14.7,スコア:1008200,ランク:'SSS+',ランプ:'FB',レート値:16.80},
+      {曲名:'サンプル新曲B',musicId:2,diff:'master',難易度:'MASTER',定数:14.2,スコア:1002500,ランク:'SSS',ランプ:'FC',レート値:15.70},
+      {曲名:'サンプル旧曲A',musicId:3,diff:'master',難易度:'MASTER',定数:15.0,スコア:1009000,ランク:'SSS+',ランプ:'AB',レート値:17.40},
+      {曲名:'サンプル旧曲B',musicId:4,diff:'lunatic',難易度:'LUNATIC',定数:14.6,スコア:1005800,ランク:'SSS+',ランプ:'FC',レート値:16.30},
+    ],
+  };
+  loadJson(sample);
+}
+
+document.getElementById('loadBtn').addEventListener('click', ()=> document.getElementById('jsonFile').click());
+document.getElementById('jsonFile').addEventListener('change', (e)=>{
+  const f = e.target.files[0]; if(!f) return;
+  const r = new FileReader(); r.onload = (ev)=> loadJson(ev.target.result); r.readAsText(f, 'utf-8');
+});
+document.getElementById('loadSampleBtn').addEventListener('click', loadSample);
+const dropEl = document.getElementById('drop');
+['dragenter','dragover'].forEach(ev => dropEl.addEventListener(ev, e=>{ e.preventDefault(); dropEl.classList.add('hot'); }));
+['dragleave','drop'].forEach(ev => dropEl.addEventListener(ev, e=>{ e.preventDefault(); dropEl.classList.remove('hot'); }));
+dropEl.addEventListener('drop', (e)=>{
+  const f = e.dataTransfer.files[0]; if(!f) return;
+  const r = new FileReader(); r.onload = (ev)=> loadJson(ev.target.result); r.readAsText(f, 'utf-8');
+});
+document.getElementById('resetInitial').addEventListener('click', ()=>{
+  if(!initialSnapshot){ loadStatus.textContent = 'まだ読み込まれていないため戻せる初期状態がありません。'; loadStatus.className = 'status warn'; return; }
+  DATA = JSON.parse(JSON.stringify(initialSnapshot));
+  sortCol = null; sortDir = 'asc';
+  document.getElementById('rankMin').value = 'D';
+  document.getElementById('rankMax').value = '理論値';
+  loadStatus.textContent = '読み込み直後の初期状態に戻しました。';
+  loadStatus.className = 'status ok';
+  renderSummary(); render();
+  persistSessionData();
+});
+
+/* ============================================================
+   プレイヤー要約（RATING算出）
+   ============================================================ */
+function frameRateSum(list){ let sum = 0; list.forEach(r=>{ if(typeof r.rate === 'number') sum += r.rate; }); return sum; }
+function frameContrib(list){ return Math.floor(frameRateSum(list) / FRAME_DIVISOR * 1000) / 1000; }
+
+function renderSummary(){
+  const p = DATA.profile || {};
+  document.getElementById('pName').textContent = p['プレイヤーネーム'] || 'Player';
+  const meta = [];
+  if(p['レベル']) meta.push('Lv.' + p['レベル']);
+  if(p['バトルポイント']) meta.push('BP ' + p['バトルポイント']);
+  if(p['トータルプレイ']) meta.push(p['トータルプレイ'] + ' play');
+  if(p['取得日時']) meta.push('取得 ' + p['取得日時']);
+  document.getElementById('pMeta').textContent = meta.join(' / ');
+
+  const cls = {'新曲枠':'new','ベスト枠':'best','プラチナスコア枠':'plat'};
+  let total = 0, html = '';
+  TAB_KEYS.forEach(name=>{
+    const list = DATA.frames[name] || [];
+    const contrib = frameContrib(list);
+    total += contrib;
+    const rates = list.map(r=>r.rate).filter(v=>typeof v==='number');
+    const avg = rates.length ? rates.reduce((a,b)=>a+b,0)/rates.length : 0;
+    html += `<div class="bk ${cls[name]}"><div class="l">${name}</div>
+      <div class="v">${contrib.toFixed(3)}</div>
+      <div class="d">${list.length}曲 / 平均 ${avg.toFixed(3)}</div></div>`;
+  });
+  document.getElementById('bkRow').innerHTML = html;
+  document.getElementById('pRate').textContent = total.toFixed(3);
+  const off = DATA.officialRating;
+  document.getElementById('pRateOfficial').textContent = (off != null && !isNaN(off)) ? ('公式表示 ' + off.toFixed(3)) : '';
+}
+
+/* ============================================================
+   行の組み立て
+   ============================================================ */
+function buildRows(){
+  const isPlat = activeTab === 'プラチナスコア枠';
+  return (DATA.frames[activeTab] || []).map((r, i)=>{
+    const o = {
+      _idx: i, 曲名: r.title, diff: r.diff, Dif: r.Dif,
+      定数: r.const, 定数推定: !!r.const_est, レート値: r.rate,
+    };
+    if(isPlat){
+      o.スコア = r.platScore;
+      o.星 = r.star ?? 0;
+      o.maxed = o.星 >= PLAT_MAX_STAR;
+      const per = platGainPerStar(r.const);
+      o.加点 = o.maxed ? null : per;
+      o.tier = evaluateStar(o.星);
+    }else{
+      o.スコア = r.score;
+      o.ランプ = r.lamp || '';
+      o.ランク = rankAt(r.score);
+      const t = nextTarget(r.score);
+      o.maxed = (t === null);
+      o.次スコア = t;
+      o.次ランク = t === null ? null : rankAt(t);
+      o.あと = t === null ? 0 : t - r.score;
+      o.加点 = t === null ? null : rateGain(r.score, t);
+      o.tier = evaluateScore(o.あと, o.maxed);
+    }
+    return o;
+  });
+}
+
+/* ============================================================
+   描画
+   ============================================================ */
+const COLS_SCORE = [
+  ['#',            null,        'muted'],
+  ['曲名',          null,        'title'],
+  ['定数',          '定数',      'num'],
+  ['スコア',        'スコア',    'num'],
+  ['判定ランク',     'ランク',    'rank'],
+  ['次のスコア',     '次スコア',  'num'],
+  ['あと',          'あと',      'num'],
+  ['次の判定ランク', '次ランク',   'rank'],
+  ['レート値',       'レート値',  'num'],
+  ['加点',          '加点',      'gain'],
+  ['評価',          null,        'eval'],
+  ['',              null,        'del']
+];
+const COLS_PLAT = [
+  ['#',              null,      'muted'],
+  ['曲名',            null,      'title'],
+  ['定数',            '定数',    'num'],
+  ['プラチナスコア',   'スコア',  'num'],
+  ['☆',              '星',      'star'],
+  ['レート値',         'レート値','num'],
+  ['+1☆で',          '加点',    'gain'],
+  ['評価',            null,      'eval'],
+  ['',                null,      'del']
+];
+
+function difTag(diff, dif){
+  const k = normDiff(diff);
+  return `<span class="dif d-${k}">${esc(difLabel(diff, dif))}</span>`;
+}
+function diffShortLabel(diff){
+  const map = {basic:'BAS',advanced:'ADV',expert:'EXP',master:'MAS',lunatic:'LUN'};
+  return map[normDiff(diff)] || (diff ? String(diff).toUpperCase().slice(0,3) : '?');
+}
+function difTagShort(diff){
+  const k = normDiff(diff);
+  return `<span class="dif d-${k}">${esc(diffShortLabel(diff))}</span>`;
+}
+const LAMP_CLASS = { FB:'lamp-fb', FC:'lamp-fc', AB:'lamp-ab' };
+function lampTag(lamp){
+  if(!lamp) return '';
+  return String(lamp).split('/').map(s=>s.trim()).filter(Boolean)
+    .map(p => `<span class="lamptag ${LAMP_CLASS[p] || ''}">${esc(p)}</span>`).join('');
+}
+function stars(n){
+  const on = '★'.repeat(n), off = '☆'.repeat(Math.max(0, PLAT_MAX_STAR - n));
+  return `<span class="star">${on}<span class="off">${off}</span></span>`;
+}
+function fmtInt(n){ return n == null ? '-' : n.toLocaleString('ja-JP'); }
+function esc(s){ return String(s == null ? '' : s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+
+function render(){
+  const isPlat = activeTab === 'プラチナスコア枠';
+  const cols = isPlat ? COLS_PLAT : COLS_SCORE;
+
+  document.getElementById('tableTitle').textContent = `オンゲキ レーティングチェッカー（${activeTab}）`;
+  const p = DATA.profile || {};
+  document.getElementById('tableSub').textContent = `${p['プレイヤーネーム'] || ''}　RATING(算出) ${document.getElementById('pRate').textContent}`;
+
+  document.getElementById('tabs').innerHTML = TAB_KEYS.map(k=>{
+    const n = (DATA.frames[k] || []).length;
+    return `<div class="tab ${k===activeTab?'active':''}" data-tab="${esc(k)}">${esc(k)} <span class="count">(${n})</span></div>`;
+  }).join('');
+  document.querySelectorAll('#tabs .tab').forEach(el=>{
+    el.addEventListener('click', ()=>{ activeTab = el.dataset.tab; sortCol=null; sortDir='asc'; render(); persistSessionData(); });
+  });
+
+  document.getElementById('thead').innerHTML = '<tr>' + cols.map(([label, key, kind])=>{
+    if(!key){ const cls = kind === 'eval' ? 'eval-col' : (kind === 'del' ? 'del-col' : ''); return `<th class="${cls}">${label}</th>`; }
+    return `<th class="sortable" data-sort="${key}">${label}<span class="sort-arrow" id="arrow-${key}"></span></th>`;
+  }).join('') + '</tr>';
+
+  let list = buildRows();
+
+  // ランク範囲フィルタ（スコア枠のみ）
+  const total = list.length;
+  if(!isPlat){
+    const lo = rankSortValue(document.getElementById('rankMin').value);
+    const hi = rankSortValue(document.getElementById('rankMax').value);
+    list = list.filter(r => { const v = rankSortValue(r.ランク); return v >= lo && v <= hi; });
+  }
+  document.getElementById('rankFilterStatus').textContent =
+    (!isPlat && list.length < total) ? `${total}曲中${list.length}曲を表示中` : '';
+
+  // グループ化
+  const groups = new Map();
+  list.forEach(r=>{ if(!groups.has(r.tier)) groups.set(r.tier, []); groups.get(r.tier).push(r); });
+
+  // グループ内ソート
+  const mul = sortDir === 'desc' ? -1 : 1;
+  function sortValue(r, key){
+    const v = r[key];
+    if(key === 'ランク' || key === '次ランク') return v == null ? Infinity : rankSortValue(v);
+    if(typeof v === 'string') return v;
+    return v == null ? Infinity : v;
+  }
+  groups.forEach(arr=>{
+    if(sortCol){
+      arr.sort((a,b)=>{ const x=sortValue(a,sortCol),y=sortValue(b,sortCol);
+        if(typeof x==='string'||typeof y==='string') return String(x).localeCompare(String(y))*mul; return (x-y)*mul; });
+    }else{ arr.sort((a,b)=> (a._idx ?? 0) - (b._idx ?? 0)); }
+  });
+
+  cols.forEach(([,key])=>{ if(!key) return; const el = document.getElementById('arrow-'+key);
+    if(el) el.textContent = (sortCol === key) ? (sortDir === 'asc' ? '▲' : '▼') : ''; });
+
+  const body = document.getElementById('rows');
+  body.innerHTML = '';
+  let counter = 0;
+  TIER_ORDER.filter(t => groups.has(t)).forEach(tier=>{
+    const arr = groups.get(tier);
+    const head = document.createElement('tr');
+    head.className = 'group-row';
+    head.innerHTML = `<td colspan="${cols.length}">${tier}<span class="cnt">${arr.length}曲</span></td>`;
+    body.appendChild(head);
+    arr.forEach(r=>{
+      counter++;
+      const constCell = r.定数 == null ? '<span class="est">?</span>' :
+        `<span class="${r.定数推定 ? 'est' : ''}">${r.定数.toFixed(1)}${r.定数推定 ? '?' : ''}</span>`;
+      const tr = document.createElement('tr');
+      if(isPlat){
+        tr.innerHTML = `
+          <td class="muted">${counter}</td>
+          <td>${esc(r.曲名)} ${difTag(r.diff, r.Dif)}</td>
+          <td class="num">${constCell}</td>
+          <td class="num">${fmtInt(r.スコア)}</td>
+          <td>${stars(r.星)}</td>
+          <td class="num">${r.レート値 == null ? '-' : r.レート値.toFixed(3)}</td>
+          <td class="num gain">${r.加点 == null ? '<span class="muted">MAX</span>' : '+' + r.加点.toFixed(3)}</td>
+          <td class="eval-col">${tier}</td>
+          <td class="del-col"><button class="del" data-del="${r._idx}">削除</button></td>`;
+      }else{
+        tr.innerHTML = `
+          <td class="muted">${counter}</td>
+          <td>${esc(r.曲名)} ${difTag(r.diff, r.Dif)}${lampTag(r.ランプ)}</td>
+          <td class="num">${constCell}</td>
+          <td class="num">${fmtInt(r.スコア)}</td>
+          <td class="rank">${r.ランク}</td>
+          <td class="num">${r.maxed ? '<span class="muted">-</span>' : fmtInt(r.次スコア)}</td>
+          <td class="num">${r.maxed ? '<span class="muted">-</span>' : fmtInt(r.あと)}</td>
+          <td class="rank">${r.maxed ? '<span class="muted">-</span>' : r.次ランク}</td>
+          <td class="num">${r.レート値 == null ? '-' : r.レート値.toFixed(3)}</td>
+          <td class="num gain">${r.加点 == null ? '<span class="muted">-</span>' : '+' + r.加点.toFixed(3)}</td>
+          <td class="eval-col">${tier}</td>
+          <td class="del-col"><button class="del" data-del="${r._idx}">削除</button></td>`;
+      }
+      body.appendChild(tr);
+    });
+  });
+  if(counter === 0){
+    const msg = total === 0
+      ? `${esc(activeTab)}にはデータがありません`
+      : '判定ランクの範囲に該当する曲がありません（範囲設定を確認してください）';
+    body.innerHTML = `<tr><td colspan="${cols.length}" style="padding:36px;text-align:center;color:#9aa0ac;">${msg}</td></tr>`;
+  }
+
+  body.querySelectorAll('[data-del]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const i = Number(btn.dataset.del);
+      const list = DATA.frames[activeTab] || [];
+      const removed = list[i];
+      if(!removed) return;
+      list.splice(i, 1);
+      loadStatus.textContent = `「${removed.title}」を${activeTab}から削除しました。RATINGは残りの曲で再計算しています（「初期状態にリセット」で戻せます）。`;
+      loadStatus.className = 'status ok';
+      renderSummary(); render();
+      persistSessionData();
+    });
+  });
+  document.querySelectorAll('th.sortable').forEach(th=>{
+    th.addEventListener('click', ()=>{
+      const col = th.dataset.sort;
+      if(sortCol === col) sortDir = (sortDir === 'asc') ? 'desc' : 'asc';
+      else { sortCol = col; sortDir = 'asc'; }
+      render();
+    });
+  });
+}
+
+(function initRankFilters(){
+  const asc = [...RANK_TIERS].reverse();
+  const minSel = document.getElementById('rankMin');
+  const maxSel = document.getElementById('rankMax');
+  asc.forEach(([,name])=>{ minSel.appendChild(new Option(name, name)); maxSel.appendChild(new Option(name, name)); });
+  minSel.value = 'D'; maxSel.value = '理論値';
+  minSel.addEventListener('change', render); maxSel.addEventListener('change', render);
+})();
+
+function detectDeviceType(){
+  const ua = navigator.userAgent; const w = window.innerWidth;
+  const touch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+  if(/iPad/i.test(ua) || (/Android/i.test(ua) && !/Mobile/i.test(ua)) || (touch && w >= 600 && w < 1180)) return 'タブレット';
+  if(/iPhone|iPod|Android.*Mobile|Windows Phone/i.test(ua) || (touch && w < 600)) return 'スマホ';
+  return 'PC';
+}
+function updateDeviceBadge(){ document.getElementById('deviceType').textContent = `検出デバイス: ${detectDeviceType()}（画面幅 ${window.innerWidth}px）`; }
+updateDeviceBadge();
+window.addEventListener('resize', updateDeviceBadge);
+
+/* ============================================================
+   画像保存（表を複製し、評価列・削除列を落として幅に合わせて縮小）
+   ============================================================ */
+async function captureFitted(){
+  const area = document.getElementById('captureArea');
+  const srcTable = area.querySelector('table');
+
+  const wrap = document.createElement('div');
+  wrap.style.position = 'fixed';
+  wrap.style.left = '-99999px';
+  wrap.style.top = '0';
+  wrap.style.background = '#ffffff';
+  wrap.style.padding = '4px';
+  wrap.style.width = 'max-content';
+  wrap.style.fontFamily = getComputedStyle(document.body).fontFamily;
+
+  wrap.appendChild(document.getElementById('tableTitle').cloneNode(true));
+  wrap.appendChild(document.getElementById('tableSub').cloneNode(true));
+
+  const tableClone = srcTable.cloneNode(true);
+  const headCells = Array.from(tableClone.querySelectorAll('thead th'));
+  const dropIndexes = [];
+  headCells.forEach((th, i)=>{
+    if(th.classList.contains('eval-col') || th.classList.contains('del-col')) dropIndexes.push(i);
+  });
+  dropIndexes.sort((a,b)=>b-a);
+  const keptColCount = headCells.length - dropIndexes.length;
+
+  Array.from(tableClone.querySelectorAll('tr')).forEach(tr=>{
+    const groupTd = tr.querySelector('td[colspan]');
+    if(groupTd){ groupTd.setAttribute('colspan', keptColCount); return; }
+    const cells = Array.from(tr.children);
+    dropIndexes.forEach(idx=>{ if(cells[idx]) cells[idx].remove(); });
+  });
+  tableClone.querySelectorAll('td').forEach(td=>{ if(td.textContent.trim() === '') td.textContent = '-'; });
+
+  tableClone.style.transform = 'none';
+  tableClone.style.minWidth = '0';
+  wrap.appendChild(tableClone);
+  document.body.appendChild(wrap);
+
+  const naturalWidth = wrap.scrollWidth;
+  const maxWidth = Math.min(window.innerWidth - 8, 1200);
+  const scale = naturalWidth > maxWidth ? maxWidth / naturalWidth : 1;
+
+  let canvas;
+  try{
+    canvas = await html2canvas(wrap, {
+      backgroundColor: '#ffffff',
+      scale: (window.devicePixelRatio > 1.5 ? 2 : 1.6) * scale,
+      windowWidth: naturalWidth + 20,
+      width: naturalWidth,
+      height: wrap.scrollHeight,
+    });
+  }finally{ document.body.removeChild(wrap); }
+  return canvas;
+}
+document.getElementById('saveImg').addEventListener('click', ()=>{
+  if(!DATA){ loadStatus.textContent = '先にスコアデータを読み込んでください。'; loadStatus.className = 'status warn'; return; }
+  const btn = document.getElementById('saveImg'); const original = btn.textContent;
+  btn.textContent = '生成中…'; btn.disabled = true;
+  captureFitted().then(canvas=>{
+    document.getElementById('previewImg').src = canvas.toDataURL('image/jpeg', 0.92);
+    document.getElementById('imgModal').classList.add('open');
+  }).catch(err=>{ alert('画像の生成に失敗しました。\n' + err.message); })
+    .finally(()=>{ btn.textContent = original; btn.disabled = false; });
+});
+document.getElementById('closeImgModal').addEventListener('click', ()=>{ document.getElementById('imgModal').classList.remove('open'); });
+document.getElementById('imgModal').addEventListener('click', (e)=>{ if(e.target.id === 'imgModal') document.getElementById('imgModal').classList.remove('open'); });
+
+/* ============================================================
+   目標ページ
+   ============================================================ */
+const GOAL_STORE_KEY = 'ongeki_goals_v1';
+let GOALS = [];
+try{ GOALS = JSON.parse(localStorage.getItem(GOAL_STORE_KEY) || '[]'); }catch(e){ GOALS = []; }
+function saveGoals(){ try{ localStorage.setItem(GOAL_STORE_KEY, JSON.stringify(GOALS)); }catch(e){} }
+function rankThreshold(rankName){ const t = RANK_TIERS.find(([,n])=> n === rankName); return t ? t[0] : null; }
+
+document.querySelectorAll('.page-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.page-btn').forEach(b=> b.classList.toggle('active', b===btn));
+    const page = btn.dataset.page;
+    document.getElementById('checkerPage').style.display = (page==='checker') ? '' : 'none';
+    document.getElementById('goalPage').style.display = (page==='goal') ? '' : 'none';
+    document.getElementById('settingsPage').style.display = (page==='settings') ? '' : 'none';
+    if(page==='goal') renderGoals();
+  });
+});
+
+document.getElementById('goalKind').addEventListener('change', (e)=>{
+  const isRank = e.target.value === 'rank';
+  document.getElementById('goalRankWrap').style.display = isRank ? '' : 'none';
+  document.getElementById('goalScoreWrap').style.display = isRank ? 'none' : '';
+});
+(function initGoalRank(){
+  const sel = document.getElementById('goalRank');
+  ['C','B','BB','BBB','A','AA','AAA','S','SS','SSS','SSS+'].forEach(n=> sel.appendChild(new Option(n, n)));
+  sel.value = 'SSS';
+})();
+
+function allSongsPool(){ return (DATA && DATA.allSongs) ? DATA.allSongs : []; }
+function scoreFramePool(scope){
+  if(!DATA) return [];
+  const frame = DATA.frames && DATA.frames[scope] ? DATA.frames[scope] : [];
+  // フレームの曲を allSongs と同じ形（score/diff/const/lamp）に揃える
+  return frame.map(s=>({ title:s.title, musicId:s.musicId ?? null, diff:s.diff, Dif:s.Dif,
+    const:s.const, score:s.score || 0, lamp:s.lamp || '' }));
+}
+function goalPool(scope){
+  if(scope === 'all' || !scope) return allSongsPool();
+  return scoreFramePool(scope);
+}
+
+document.getElementById('goalAddBtn').addEventListener('click', ()=>{
+  const st = document.getElementById('goalStatus');
+  if(!DATA || allSongsPool().length === 0){
+    st.textContent = '先に「レーティングチェッカー」でスコアデータを読み込んでください。';
+    st.className = 'status warn'; return;
+  }
+  const scope = document.getElementById('goalScope').value;
+  const cMin = parseFloat(document.getElementById('goalConstMin').value);
+  const cMax = parseFloat(document.getElementById('goalConstMax').value);
+  const diff = document.getElementById('goalDiff').value; // basic..lunatic or ''
+  const kind = document.getElementById('goalKind').value;
+  const rank = document.getElementById('goalRank').value;
+  const scoreVal = parseInt(document.getElementById('goalScore').value, 10);
+  const target = kind === 'rank' ? rankThreshold(rank) : scoreVal;
+  if(kind === 'score' && isNaN(scoreVal)){ st.textContent = '目標スコアを入力してください。'; st.className='status warn'; return; }
+
+  const base = goalPool(scope);
+  const baseCount = base.length;
+  let excludedUnknown = 0;
+
+  const pool = base.filter(s=>{
+    if(!isNaN(cMin) || !isNaN(cMax)){
+      if(s.const == null){ excludedUnknown++; return false; }
+      if(!isNaN(cMin) && s.const < cMin) return false;
+      if(!isNaN(cMax) && s.const > cMax) return false;
+    }
+    if(diff && normDiff(s.diff) !== diff) return false;
+    return true;
+  });
+  if(pool.length === 0){
+    st.textContent = `条件に合う曲がありませんでした（対象の枠${baseCount}曲）。枠・定数範囲・難易度を見直してください。`;
+    st.className='status warn'; return;
+  }
+
+  const condParts = [];
+  if(scope !== 'all') condParts.push(scope);
+  if(!isNaN(cMin) || !isNaN(cMax)) condParts.push(`定数${isNaN(cMin)?'':cMin}〜${isNaN(cMax)?'':cMax}`);
+  if(diff) condParts.push(difLabel(diff));
+  condParts.push(kind === 'rank' ? `${rank}以上` : `${scoreVal.toLocaleString('ja-JP')}以上`);
+  const autoName = condParts.join(' / ');
+
+  const goal = {
+    id: Date.now(),
+    name: document.getElementById('goalName').value.trim() || autoName,
+    scope,
+    cond: { cMin: isNaN(cMin)?null:cMin, cMax: isNaN(cMax)?null:cMax, diff, kind, rank, score: isNaN(scoreVal)?null:scoreVal },
+    target,
+    songs: pool.map(s=>({ title:s.title, musicId:s.musicId ?? null, diff:s.diff, Dif:s.Dif, const:s.const, lamp:s.lamp || '' })),
+  };
+  GOALS.push(goal);
+  saveGoals();
+  document.getElementById('goalName').value = '';
+  let msg = `「${goal.name}」を作成しました（対象${pool.length}曲）。`;
+  if(excludedUnknown > 0) msg += ` ※定数未確定の${excludedUnknown}曲は定数範囲指定のため除外しました。`;
+  st.textContent = msg; st.className = 'status ok';
+  renderGoals();
+});
+
+function songKey(s){ return (s.musicId != null ? 'm'+s.musicId : (s.title||'')) + '|' + normDiff(s.diff); }
+function scoreLookup(){
+  const map = new Map();
+  allSongsPool().forEach(s=>{ map.set(songKey(s), s.score || 0); });
+  // フレームの曲も補完（全譜面に無い場合の保険）
+  TAB_KEYS.forEach(k=>{
+    (DATA.frames[k] || []).forEach(s=>{ if(typeof s.score === 'number'){ const key = songKey(s); if(!map.has(key)) map.set(key, s.score); } });
+  });
+  return map;
+}
+
+function renderGoals(){
+  const host = document.getElementById('goalList');
+  if(GOALS.length === 0){
+    host.innerHTML = `<div class="goal-empty">まだ目標がありません。上のフォームから条件を指定して作成してください。</div>`;
+    return;
+  }
+  const scores = scoreLookup();
+  host.innerHTML = '';
+  GOALS.forEach(goal=>{
+    if(!goal.checked) goal.checked = {};
+    const total = goal.songs.length;
+    let done = 0;
+    const rows = goal.songs.map(s=>{
+      const key = songKey(s);
+      const cur = scores.get(key) ?? 0;
+      const autoDone = cur >= goal.target;
+      const manualDone = !!goal.checked[key];
+      const isDone = autoDone || manualDone;
+      if(isDone) done++;
+      return { s, key, cur, autoDone, manualDone, isDone, need: Math.max(0, goal.target - cur) };
+    });
+    const remain = total - done;
+    const pct = total ? Math.floor(done / total * 1000) / 10 : 0;
+
+    const card = document.createElement('div');
+    card.className = 'goal-card' + (remain === 0 ? ' done' : '');
+
+    const pending = rows.filter(r=> !r.isDone).sort((a,b)=> a.need - b.need);
+    const targetLabel = goal.cond.kind === 'rank'
+      ? `${goal.cond.rank}以上 (${goal.target.toLocaleString('ja-JP')})`
+      : `${goal.target.toLocaleString('ja-JP')}以上`;
+
+    let songsHtml;
+    if(remain === 0){
+      songsHtml = `<div class="goal-done-msg">🎉 この目標は全曲達成しました！</div>`;
+    }else{
+      songsHtml = `<div class="goal-songs">` + pending.map(r=>{
+        const constMeta = r.s.const != null ? `<span class="g-const">定数${Number(r.s.const).toFixed(1)}</span>` : '<span class="g-const est">定数?</span>';
+        return `
+        <div class="goal-song-row">
+          <span class="goal-check" data-check="${goal.id}" data-key="${encodeURIComponent(r.key)}" title="タップでチェック（達成扱いにして一覧から消す）"></span>
+          <div class="g-main">
+            <div class="g-title">${esc(r.s.title)}</div>
+            <div class="g-meta">${difTagShort(r.s.diff)}${lampTag(r.s.lamp)}<span>/</span>${constMeta}</div>
+          </div>
+          <div class="g-scores">
+            <span class="g-num">${r.cur.toLocaleString('ja-JP')}</span>
+            <span class="g-need">+${r.need.toLocaleString('ja-JP')}</span>
+          </div>
+        </div>`;}).join('') + `</div>`;
+    }
+
+    const manualCount = rows.filter(r=> r.manualDone && !r.autoDone).length;
+    const manualNote = manualCount > 0
+      ? `<button class="goal-uncheck" data-uncheck="${goal.id}">手動チェック${manualCount}曲を戻す</button>` : '';
+
+    card.innerHTML = `
+      <div class="goal-card-head">
+        <div>
+          <div class="goal-card-title">${esc(goal.name)}</div>
+          <div class="goal-card-cond">達成基準: ${targetLabel}　対象${total}曲</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          ${manualNote}
+          <button class="goal-del" data-goal-del="${goal.id}">削除</button>
+        </div>
+      </div>
+      <div class="goal-progress-top">
+        <span class="goal-remain-num">${remain}</span>
+        <span class="goal-total">/ ${total}</span>
+        <span class="goal-pct">達成 <span class="big">${pct}%</span></span>
+      </div>
+      <div class="goal-bar-wrap"><div class="goal-bar" style="width:${pct}%"></div></div>
+      ${songsHtml}`;
+    host.appendChild(card);
+  });
+
+  host.querySelectorAll('[data-check]').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      const id = Number(el.dataset.check);
+      const key = decodeURIComponent(el.dataset.key);
+      const goal = GOALS.find(g=> g.id === id);
+      if(!goal) return;
+      if(!goal.checked) goal.checked = {};
+      goal.checked[key] = true;
+      saveGoals(); renderGoals();
+    });
+  });
+  host.querySelectorAll('[data-uncheck]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const id = Number(btn.dataset.uncheck);
+      const goal = GOALS.find(g=> g.id === id);
+      if(!goal) return;
+      goal.checked = {};
+      saveGoals(); renderGoals();
+    });
+  });
+  host.querySelectorAll('[data-goal-del]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const id = Number(btn.dataset.goalDel);
+      GOALS = GOALS.filter(g=> g.id !== id);
+      saveGoals(); renderGoals();
+    });
+  });
+}
+
+/* ============================================================
+   データ取得ページ: ブックマークレット / 取得スクリプトのコピー
+   ============================================================ */
+// ブックマークレットリンク: クリックしても実行せず、コードをコピー
+(function initBookmarkletCopy(){
+  const link = document.getElementById('bookmarkletLink');
+  const status = document.getElementById('bookmarkletCopyStatus');
+  if(!link) return;
+  link.addEventListener('click', (e)=>{
+    e.preventDefault();
+    const code = link.getAttribute('href');
+    const show = (ok)=>{
+      status.textContent = ok
+        ? 'コピーしました！新しいブックマークを作成し、URL欄に貼り付けて登録してください。'
+        : 'コピーに失敗しました。bookmarklet.txt の内容を手動でコピーしてください。';
+      status.className = 'status ' + (ok ? 'ok' : 'warn');
+    };
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(code).then(()=> show(true)).catch(()=> show(false));
+    }else{ show(false); }
+  });
+})();
+
+(function initCollectScript(){
+  const pre = document.getElementById('collectScript');
+  const btn = document.getElementById('copyScriptBtn');
+  const status = document.getElementById('copyScriptStatus');
+  let scriptText = '';
+
+  fetch('ongeki_collect_console.js', { cache: 'no-cache' })
+    .then(res => { if(!res.ok) throw new Error('HTTP ' + res.status); return res.text(); })
+    .then(text => { scriptText = text; pre.textContent = text; })
+    .catch(()=>{ pre.textContent = 'スクリプトの自動読み込みに失敗しました。上の「ongeki_collect_console.js を開く」から中身をコピーしてください。'; });
+
+  btn.addEventListener('click', ()=>{
+    const code = scriptText || pre.textContent;
+    if(!code || !scriptText){
+      status.textContent = 'スクリプトを読み込めませんでした。リンクから開いてコピーしてください。';
+      status.className = 'status warn'; return;
+    }
+    const show = (ok)=>{ status.textContent = ok ? 'コピーしました！ongeki-score.net のコンソールに貼り付けて実行してください。' : 'コピーに失敗しました。リンクから開いて手動でコピーしてください。'; status.className = 'status ' + (ok?'ok':'warn'); };
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(code).then(()=> show(true)).catch(()=> show(false));
+    }else{ show(false); }
+  });
+})();
+
+// 譜面定数表の再取得（キャッシュ更新）
+(function initReloadConst(){
+  const btn = document.getElementById('reloadConstBtn');
+  const status = document.getElementById('constDbStatus');
+  if(!btn) return;
+  btn.addEventListener('click', async ()=>{
+    btn.disabled = true; status.textContent = '取得中…'; status.className = 'status';
+    try{
+      await ensureConstDB(true);
+      let msg = `定数表を更新しました（${CONST_BY_ID.size}譜面）。`;
+      if(DATA){
+        const filled = mergeConstDB();
+        renderSummary(); render(); persistSessionData();
+        msg += filled > 0 ? ` 読み込み済みデータに${filled}件の定数を反映しました。` : ' 補完が必要な定数はありませんでした。';
+      }
+      status.textContent = msg; status.className = 'status ok';
+    }catch(e){
+      status.textContent = '取得に失敗しました: ' + e.message; status.className = 'status warn';
+    }finally{ btn.disabled = false; }
+  });
+})();
+
+/* ============================================================
+   起動時: 定数表を先読みし、セッション内データがあれば復元、無ければサンプル
+   ============================================================ */
+ensureConstDB().catch(()=>{});
+if(restoreSessionData()){
+  document.getElementById('rankMin').value = 'D';
+  document.getElementById('rankMax').value = '理論値';
+  document.getElementById('app').style.display = '';
+  const p = DATA.profile || {};
+  loadStatus.textContent = `前回のデータを復元しました: ${p['プレイヤーネーム'] || 'Player'}`;
+  loadStatus.className = 'status ok';
+  renderSummary(); render();
+}else{
+  loadSample();
+}
+</script>
+</body>
+</html>
