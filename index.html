@@ -160,6 +160,8 @@
   .goal-song-row .g-scores{flex-shrink:0;text-align:right;line-height:1.35;}
   .goal-song-row .g-num{display:block;font-variant-numeric:tabular-nums;font-family:ui-monospace,Menlo,Consolas,monospace;color:#5f6673;}
   .goal-song-row .g-need{display:block;color:#c23b3b;font-weight:700;font-variant-numeric:tabular-nums;font-size:11.5px;}
+  .goal-song-row .g-group{margin-top:5px;}
+  .goal-song-row .g-sublabel{display:block;font-size:9.5px;color:#9aa0ac;margin-top:5px;}
   .goal-check{width:20px;height:20px;border-radius:4px;border:2px solid #9fd8bd;display:inline-flex;align-items:center;justify-content:center;font-size:13px;color:#fff;flex-shrink:0;cursor:pointer;transition:.12s;}
   .goal-check:hover{border-color:#5cae3a;background:#eaf6e2;}
   .goal-check.on{background:#5cae3a;border-color:#5cae3a;}
@@ -257,6 +259,7 @@
               <option value="all">全曲（全譜面）</option>
               <option value="新曲枠">新曲枠</option>
               <option value="ベスト枠">ベスト枠</option>
+              <option value="プラチナスコア枠">プラチナスコア枠</option>
             </select>
           </label>
           <label>定数 <input type="number" step="0.1" id="goalConstMin" class="inp goal-narrow" placeholder="下限"> 〜 <input type="number" step="0.1" id="goalConstMax" class="inp goal-narrow" placeholder="上限"></label>
@@ -267,7 +270,7 @@
               <option value="expert">EXPERT</option><option value="master">MASTER</option><option value="lunatic">LUNATIC</option>
             </select>
           </label>
-          <label>達成基準
+          <label id="goalKindWrap">達成基準
             <select id="goalKind" class="inp">
               <option value="rank">ランク以上</option>
               <option value="score">スコア以上</option>
@@ -275,9 +278,10 @@
           </label>
           <label id="goalRankWrap">ランク <select id="goalRank" class="inp"></select></label>
           <label id="goalScoreWrap" style="display:none;">スコア <input type="number" step="1" id="goalScore" class="inp" placeholder="1007500"></label>
+          <label id="goalStarWrap" style="display:none;">★ <select id="goalStar" class="inp"></select></label>
           <button class="primary" id="goalAddBtn">この条件で目標を作成</button>
         </div>
-        <p class="goal-hint" style="margin:8px 0 0;">定数の上限・下限は空欄でもOK（その場合は定数で絞りません）。定数が未確定の曲は、定数範囲を指定するとその条件では対象外になります。</p>
+        <p class="goal-hint" style="margin:8px 0 0;">定数の上限・下限は空欄でもOK（その場合は定数で絞りません）。定数が未確定の曲は、定数範囲を指定するとその条件では対象外になります。プラチナスコア枠を対象にした場合、達成基準は「★以上」になります。</p>
         <p class="status" id="goalStatus"></p>
       </div>
       <div id="goalList"></div>
@@ -349,7 +353,8 @@
       <h2 class="goal-h2">レート計算について</h2>
       <p class="goal-hint" style="margin:0;">
         総合RATING = 新曲枠・ベスト枠・プラチナスコア枠の各「レート寄与値（枠内レート値の合計 ÷ 50）」の合計として算出しています。各曲の「レート値」は ongeki-score.net が算出した値をそのまま採用します（ベル数由来の成分を含むため、スコアと譜面定数だけでは完全には再現できません）。<br>
-        「加点」は次の判定ランクに到達したときのレート上昇量で、スコア補正の差分だけで決まるため正確に算出できます。プラチナスコア枠のレート値は「譜面定数² ÷ 1000 × ☆数」で、「+1☆で」はその1☆分の上昇量です。オンゲキ Re:Fresh 以降、レート値は SSS+ で頭打ちにならず 1,010,000 まで伸び続けます。
+        「加点」は次の判定ランクに到達したときのレート上昇量で、スコア補正の差分だけで決まるため正確に算出できます。プラチナスコア枠のレート値は「譜面定数² ÷ 1000 × ☆数」で、「+1☆で（次レート値）」はその1☆分の上昇量と、到達後のレート値です。オンゲキ Re:Fresh 以降、レート値は SSS+ で頭打ちにならず 1,010,000 まで伸び続けます。<br>
+        プラチナスコアの★は、公式発表の達成率しきい値（94%=★1／95%=★2／96%=★3／97%=★4／98%=★5、各譜面の最大プラチナスコアに対する割合）で決まります。ただし各譜面の最大プラチナスコア自体は非公開のため、「次のプラチナスコア」欄は現在の★帯（1%幅）の中央値を仮の達成率とみなして最大値を逆算した<strong>概算値（≈）</strong>です。★0（達成率94%未満）の曲は幅が広すぎるため推定せず「?」と表示します。
       </p>
     </div>
 
@@ -365,7 +370,8 @@
     ※ 判定ランク境界値(スコア): D:0 / C:500,000 / B:700,000 / BB:750,000 / BBB:800,000 / A:850,000 / AA:900,000 / AAA:940,000 / S:970,000 / SS:990,000 / SSS:1,000,000 / SSS+:1,007,500 / 理論値:1,010,000<br>
     ※ RATING = 新曲枠・ベスト枠・プラチナスコア枠の各レート寄与値（枠内レート値の合計 ÷ 50）の合計。ongeki-score.net 上のRATING対象曲をそのまま採用しています。<br>
     ※ 「レート値」は ongeki-score.net が算出した値です。「加点」は次の判定ランクに到達したときのレート値の上昇量で、スコア補正の差分だけで決まるため正確に算出できます。<br>
-    ※ 定数に「?」が付くものは未確定の推定値です。ongeki-score.net 側に定数が無い曲は、定数表（reiwa.f5.si の ongeki_record.json）から musicId と難易度で結合して補完します。<br>
+    ※ 定数に「?」が付くものは未確定の推定値です。ongeki-score.net 側に定数が無い曲・推定扱いの曲は、定数表（reiwa.f5.si の ongeki_record.json）から musicId と難易度で結合して補完します（サイト側の確定値はそのまま優先）。<br>
+    ※ プラチナスコア枠の「次のプラチナスコア」欄（≈）は、各譜面の最大プラチナスコアが非公開のための概算値です。★0の曲は推定できないため「?」と表示します。<br>
     ※ 列見出しをクリックすると並び替えられます（評価グループの区切りは維持されます）。各行の「削除」でその曲を今の枠から外せます。データは消えないので「初期状態にリセット」で戻せます。<br>
     ※ 画像として保存する際は「評価」列と削除ボタンの列が非表示になります。
     <p class="legal">
@@ -427,6 +433,25 @@ function rateGain(cur, next){
 // プラチナ: 譜面定数² ÷ 1000 × ☆数
 function platGainPerStar(constant){ return constant == null ? null : constant * constant / 1000; }
 const PLAT_MAX_STAR = 5;
+
+/* ------------------------------------------------------------
+   プラチナスコア「次の★」までの推定必要スコア
+   ── 公式発表の達成率しきい値（オンゲキ Re:Fresh）:
+      94%以上=★1 / 95%以上=★2 / 96%以上=★3 / 97%以上=★4 / 98%以上=★5
+   ── 各譜面の最大プラチナスコア（ノーツ構成依存）は非公開のため、
+      現在の★帯（1%幅）の中央値を仮の達成率とみなして最大値を逆算し、
+      次の★のしきい値を推定する（あくまで概算値）。
+   ------------------------------------------------------------ */
+const PLAT_STAR_PCT = [94, 95, 96, 97, 98]; // index i = ★(i+1) の下限%
+function platNextScoreEstimate(curScore, curStar){
+  if(curScore == null || curStar == null) return null;
+  if(curStar <= 0 || curStar >= PLAT_MAX_STAR) return null; // ★0は帯が広すぎて推定不可、★5は到達済み
+  const lowPct = PLAT_STAR_PCT[curStar - 1];   // 現在の★帯の下限%
+  const highPct = PLAT_STAR_PCT[curStar];      // 現在の★帯の上限%（=次の★の下限%）
+  const midPct = (lowPct + highPct) / 2;
+  const estMax = curScore / (midPct / 100);
+  return Math.ceil(estMax * highPct / 100);
+}
 
 /* ============================================================
    評価グループ
@@ -775,6 +800,8 @@ function buildRows(){
       o.maxed = o.星 >= PLAT_MAX_STAR;
       const per = platGainPerStar(r.const);
       o.加点 = o.maxed ? null : per;
+      o.次レート値 = (o.maxed || o.加点 == null || o.レート値 == null) ? null : o.レート値 + o.加点;
+      o.次プラチナスコア = o.maxed ? null : platNextScoreEstimate(r.platScore, o.星);
       o.tier = evaluateStar(o.星);
     }else{
       o.スコア = r.score;
@@ -810,15 +837,16 @@ const COLS_SCORE = [
   ['',              null,        'del']
 ];
 const COLS_PLAT = [
-  ['#',              null,      'muted'],
-  ['曲名',            null,      'title'],
-  ['定数',            '定数',    'num'],
-  ['プラチナスコア',   'スコア',  'num'],
-  ['☆',              '星',      'star'],
-  ['レート値',         'レート値','num'],
-  ['+1☆で',          '加点',    'gain'],
-  ['評価',            null,      'eval'],
-  ['',                null,      'del']
+  ['#',              null,        'muted'],
+  ['曲名',            null,        'title'],
+  ['定数',            '定数',      'num'],
+  ['プラチナスコア',   'スコア',    'num'],
+  ['次のプラチナスコア', '次プラチナスコア', 'num'],
+  ['☆',              '星',        'star'],
+  ['レート値',         'レート値',  'num'],
+  ['+1☆で（次レート値）', '加点',   'gain'],
+  ['評価',            null,        'eval'],
+  ['',                null,        'del']
 ];
 
 function difTag(diff, dif){
@@ -916,14 +944,20 @@ function render(){
         `<span class="${r.定数推定 ? 'est' : ''}">${r.定数.toFixed(1)}${r.定数推定 ? '?' : ''}</span>`;
       const tr = document.createElement('tr');
       if(isPlat){
+        const nextScoreCell = r.maxed ? '<span class="muted">MAX</span>' :
+          (r.次プラチナスコア == null ? '<span class="est">?</span>' :
+            `<span class="est">≈${fmtInt(r.次プラチナスコア)}<br><span style="font-size:10px;">(+${fmtInt(r.次プラチナスコア - r.スコア)})</span></span>`);
+        const gainCell = r.加点 == null ? '<span class="muted">MAX</span>' :
+          `+${r.加点.toFixed(3)}<br><span style="font-size:10px;color:#8a90a0;">(→${r.次レート値 == null ? '-' : r.次レート値.toFixed(3)})</span>`;
         tr.innerHTML = `
           <td class="muted">${counter}</td>
           <td>${esc(r.曲名)} ${difTag(r.diff, r.Dif)}</td>
           <td class="num">${constCell}</td>
           <td class="num">${fmtInt(r.スコア)}</td>
+          <td class="num">${nextScoreCell}</td>
           <td>${stars(r.星)}</td>
           <td class="num">${r.レート値 == null ? '-' : r.レート値.toFixed(3)}</td>
-          <td class="num gain">${r.加点 == null ? '<span class="muted">MAX</span>' : '+' + r.加点.toFixed(3)}</td>
+          <td class="num gain">${gainCell}</td>
           <td class="eval-col">${tier}</td>
           <td class="del-col"><button class="del" data-del="${r._idx}">削除</button></td>`;
       }else{
@@ -1089,10 +1123,26 @@ document.getElementById('goalKind').addEventListener('change', (e)=>{
   document.getElementById('goalRankWrap').style.display = isRank ? '' : 'none';
   document.getElementById('goalScoreWrap').style.display = isRank ? 'none' : '';
 });
+document.getElementById('goalScope').addEventListener('change', (e)=>{
+  const isPlat = e.target.value === 'プラチナスコア枠';
+  document.getElementById('goalKindWrap').style.display = isPlat ? 'none' : '';
+  document.getElementById('goalStarWrap').style.display = isPlat ? '' : 'none';
+  if(isPlat){
+    document.getElementById('goalRankWrap').style.display = 'none';
+    document.getElementById('goalScoreWrap').style.display = 'none';
+  }else{
+    document.getElementById('goalKind').dispatchEvent(new Event('change'));
+  }
+});
 (function initGoalRank(){
   const sel = document.getElementById('goalRank');
   ['C','B','BB','BBB','A','AA','AAA','S','SS','SSS','SSS+'].forEach(n=> sel.appendChild(new Option(n, n)));
   sel.value = 'SSS';
+})();
+(function initGoalStar(){
+  const sel = document.getElementById('goalStar');
+  for(let i = 1; i <= PLAT_MAX_STAR; i++) sel.appendChild(new Option('★' + i, i));
+  sel.value = String(PLAT_MAX_STAR);
 })();
 
 function allSongsPool(){ return (DATA && DATA.allSongs) ? DATA.allSongs : []; }
@@ -1103,8 +1153,15 @@ function scoreFramePool(scope){
   return frame.map(s=>({ title:s.title, musicId:s.musicId ?? null, diff:s.diff, Dif:s.Dif,
     const:s.const, score:s.score || 0, lamp:s.lamp || '' }));
 }
+function platFramePool(){
+  if(!DATA) return [];
+  const frame = (DATA.frames && DATA.frames['プラチナスコア枠']) ? DATA.frames['プラチナスコア枠'] : [];
+  return frame.map(s=>({ title:s.title, musicId:s.musicId ?? null, diff:s.diff, Dif:s.Dif,
+    const:s.const, star:s.star ?? 0, platScore:s.platScore ?? 0 }));
+}
 function goalPool(scope){
   if(scope === 'all' || !scope) return allSongsPool();
+  if(scope === 'プラチナスコア枠') return platFramePool();
   return scoreFramePool(scope);
 }
 
@@ -1115,14 +1172,17 @@ document.getElementById('goalAddBtn').addEventListener('click', ()=>{
     st.className = 'status warn'; return;
   }
   const scope = document.getElementById('goalScope').value;
+  const isPlatScope = scope === 'プラチナスコア枠';
   const cMin = parseFloat(document.getElementById('goalConstMin').value);
   const cMax = parseFloat(document.getElementById('goalConstMax').value);
   const diff = document.getElementById('goalDiff').value; // basic..lunatic or ''
-  const kind = document.getElementById('goalKind').value;
+  const kind = isPlatScope ? 'star' : document.getElementById('goalKind').value;
   const rank = document.getElementById('goalRank').value;
   const scoreVal = parseInt(document.getElementById('goalScore').value, 10);
-  const target = kind === 'rank' ? rankThreshold(rank) : scoreVal;
+  const starVal = parseInt(document.getElementById('goalStar').value, 10);
+  const target = kind === 'star' ? starVal : (kind === 'rank' ? rankThreshold(rank) : scoreVal);
   if(kind === 'score' && isNaN(scoreVal)){ st.textContent = '目標スコアを入力してください。'; st.className='status warn'; return; }
+  if(kind === 'star' && isNaN(starVal)){ st.textContent = '目標の★を選択してください。'; st.className='status warn'; return; }
 
   const base = goalPool(scope);
   const baseCount = base.length;
@@ -1146,16 +1206,19 @@ document.getElementById('goalAddBtn').addEventListener('click', ()=>{
   if(scope !== 'all') condParts.push(scope);
   if(!isNaN(cMin) || !isNaN(cMax)) condParts.push(`定数${isNaN(cMin)?'':cMin}〜${isNaN(cMax)?'':cMax}`);
   if(diff) condParts.push(difLabel(diff));
-  condParts.push(kind === 'rank' ? `${rank}以上` : `${scoreVal.toLocaleString('ja-JP')}以上`);
+  if(kind === 'star') condParts.push(`★${starVal}以上`);
+  else condParts.push(kind === 'rank' ? `${rank}以上` : `${scoreVal.toLocaleString('ja-JP')}以上`);
   const autoName = condParts.join(' / ');
 
   const goal = {
     id: Date.now(),
     name: document.getElementById('goalName').value.trim() || autoName,
     scope,
-    cond: { cMin: isNaN(cMin)?null:cMin, cMax: isNaN(cMax)?null:cMax, diff, kind, rank, score: isNaN(scoreVal)?null:scoreVal },
+    cond: { cMin: isNaN(cMin)?null:cMin, cMax: isNaN(cMax)?null:cMax, diff, kind, rank, score: isNaN(scoreVal)?null:scoreVal, star: isNaN(starVal)?null:starVal },
     target,
-    songs: pool.map(s=>({ title:s.title, musicId:s.musicId ?? null, diff:s.diff, Dif:s.Dif, const:s.const, lamp:s.lamp || '' })),
+    songs: isPlatScope
+      ? pool.map(s=>({ title:s.title, musicId:s.musicId ?? null, diff:s.diff, Dif:s.Dif, const:s.const, star:s.star ?? 0, platScore:s.platScore ?? 0 }))
+      : pool.map(s=>({ title:s.title, musicId:s.musicId ?? null, diff:s.diff, Dif:s.Dif, const:s.const, lamp:s.lamp || '' })),
   };
   GOALS.push(goal);
   saveGoals();
@@ -1176,6 +1239,16 @@ function scoreLookup(){
   });
   return map;
 }
+function starLookup(){
+  const map = new Map();
+  (DATA.frames['プラチナスコア枠'] || []).forEach(s=>{ map.set(songKey(s), s.star ?? 0); });
+  return map;
+}
+function platScoreLookup(){
+  const map = new Map();
+  (DATA.frames['プラチナスコア枠'] || []).forEach(s=>{ map.set(songKey(s), s.platScore ?? 0); });
+  return map;
+}
 
 function renderGoals(){
   const host = document.getElementById('goalList');
@@ -1184,19 +1257,23 @@ function renderGoals(){
     return;
   }
   const scores = scoreLookup();
+  const stars = starLookup();
+  const platScores = platScoreLookup();
   host.innerHTML = '';
   GOALS.forEach(goal=>{
     if(!goal.checked) goal.checked = {};
+    const isStarGoal = goal.cond.kind === 'star';
     const total = goal.songs.length;
     let done = 0;
     const rows = goal.songs.map(s=>{
       const key = songKey(s);
-      const cur = scores.get(key) ?? 0;
+      const cur = isStarGoal ? (stars.get(key) ?? 0) : (scores.get(key) ?? 0);
+      const curPlatScore = isStarGoal ? (platScores.get(key) ?? 0) : null;
       const autoDone = cur >= goal.target;
       const manualDone = !!goal.checked[key];
       const isDone = autoDone || manualDone;
       if(isDone) done++;
-      return { s, key, cur, autoDone, manualDone, isDone, need: Math.max(0, goal.target - cur) };
+      return { s, key, cur, curPlatScore, autoDone, manualDone, isDone, need: Math.max(0, goal.target - cur) };
     });
     const remain = total - done;
     const pct = total ? Math.floor(done / total * 1000) / 10 : 0;
@@ -1205,9 +1282,11 @@ function renderGoals(){
     card.className = 'goal-card' + (remain === 0 ? ' done' : '');
 
     const pending = rows.filter(r=> !r.isDone).sort((a,b)=> a.need - b.need);
-    const targetLabel = goal.cond.kind === 'rank'
-      ? `${goal.cond.rank}以上 (${goal.target.toLocaleString('ja-JP')})`
-      : `${goal.target.toLocaleString('ja-JP')}以上`;
+    const targetLabel = isStarGoal
+      ? `★${goal.target}以上`
+      : (goal.cond.kind === 'rank'
+        ? `${goal.cond.rank}以上 (${goal.target.toLocaleString('ja-JP')})`
+        : `${goal.target.toLocaleString('ja-JP')}以上`);
 
     let songsHtml;
     if(remain === 0){
@@ -1215,16 +1294,35 @@ function renderGoals(){
     }else{
       songsHtml = `<div class="goal-songs">` + pending.map(r=>{
         const constMeta = r.s.const != null ? `<span class="g-const">定数${Number(r.s.const).toFixed(1)}</span>` : '<span class="g-const est">定数?</span>';
+        const scoresHtml = isStarGoal
+          ? (()=>{
+              const est = platNextScoreEstimate(r.curPlatScore, r.cur);
+              const platBlock = (r.cur >= PLAT_MAX_STAR)
+                ? `<span class="g-sublabel">プラチナスコア</span>
+                   <span class="g-num">${fmtInt(r.curPlatScore)}</span>
+                   <span class="g-need" style="color:#9aa0ac;">MAX</span>`
+                : (est == null
+                  ? `<span class="g-sublabel">プラチナスコア</span>
+                     <span class="g-num">${fmtInt(r.curPlatScore)}</span>
+                     <span class="g-need" style="color:#9aa0ac;">?</span>`
+                  : `<span class="g-sublabel">プラチナスコア</span>
+                     <span class="g-num">${fmtInt(r.curPlatScore)}</span>
+                     <span class="g-need">+${fmtInt(est - r.curPlatScore)}（≈${fmtInt(est)}）</span>`);
+              return `<span class="g-num">${'★'.repeat(r.cur)}${'☆'.repeat(Math.max(0, PLAT_MAX_STAR - r.cur))}</span>
+                <span class="g-need">+${r.need}★</span>
+                <div class="g-group">${platBlock}</div>`;
+            })()
+          : `<span class="g-num">${r.cur.toLocaleString('ja-JP')}</span>
+             <span class="g-need">+${r.need.toLocaleString('ja-JP')}</span>`;
         return `
         <div class="goal-song-row">
           <span class="goal-check" data-check="${goal.id}" data-key="${encodeURIComponent(r.key)}" title="タップでチェック（達成扱いにして一覧から消す）"></span>
           <div class="g-main">
             <div class="g-title">${esc(r.s.title)}</div>
-            <div class="g-meta">${difTagShort(r.s.diff)}${lampTag(r.s.lamp)}<span>/</span>${constMeta}</div>
+            <div class="g-meta">${difTagShort(r.s.diff)}${isStarGoal ? '' : lampTag(r.s.lamp)}<span>/</span>${constMeta}</div>
           </div>
           <div class="g-scores">
-            <span class="g-num">${r.cur.toLocaleString('ja-JP')}</span>
-            <span class="g-need">+${r.need.toLocaleString('ja-JP')}</span>
+            ${scoresHtml}
           </div>
         </div>`;}).join('') + `</div>`;
     }
@@ -1355,18 +1453,24 @@ function renderGoals(){
 /* ============================================================
    起動時: 定数表を先読みし、セッション内データがあれば復元、無ければサンプル
    ============================================================ */
-ensureConstDB().catch(()=>{});
-if(restoreSessionData()){
-  document.getElementById('rankMin').value = 'D';
-  document.getElementById('rankMax').value = '理論値';
-  document.getElementById('app').style.display = '';
-  const p = DATA.profile || {};
-  loadStatus.textContent = `前回のデータを復元しました: ${p['プレイヤーネーム'] || 'Player'}`;
-  loadStatus.className = 'status ok';
-  renderSummary(); render();
-}else{
-  loadSample();
-}
+(async function boot(){
+  try{ await ensureConstDB(); }catch(e){}
+  if(restoreSessionData()){
+    document.getElementById('rankMin').value = 'D';
+    document.getElementById('rankMax').value = '理論値';
+    document.getElementById('app').style.display = '';
+    // 復元したデータにも、最新の定数表で欠損・推定定数を補完しておく
+    const filled = mergeConstDB();
+    const p = DATA.profile || {};
+    loadStatus.textContent = `前回のデータを復元しました: ${p['プレイヤーネーム'] || 'Player'}` +
+      (filled > 0 ? `　譜面定数表から${filled}件の定数を補完しました。` : '');
+    loadStatus.className = 'status ok';
+    renderSummary(); render();
+    if(filled > 0) persistSessionData();
+  }else{
+    loadSample();
+  }
+})();
 </script>
 </body>
 </html>
