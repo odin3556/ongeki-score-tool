@@ -829,10 +829,10 @@ const COLS_SCORE = [
   ['スコア',        'スコア',    'num'],
   ['判定ランク',     'ランク',    'rank'],
   ['次のスコア',     '次スコア',  'num'],
-  ['あと',          'あと',      'num'],
   ['次の判定ランク', '次ランク',   'rank'],
-  ['レート値',       'レート値',  'num'],
-  ['加点',          '加点',      'gain'],
+  ['差分',          'あと',      'gain'],
+  ['レート値',       'レート値',  'num', true],
+  ['加点',          '加点',      'gain', true],
   ['評価',          null,        'eval'],
   ['',              null,        'del']
 ];
@@ -890,9 +890,10 @@ function render(){
     el.addEventListener('click', ()=>{ activeTab = el.dataset.tab; sortCol=null; sortDir='asc'; render(); persistSessionData(); });
   });
 
-  document.getElementById('thead').innerHTML = '<tr>' + cols.map(([label, key, kind])=>{
+  document.getElementById('thead').innerHTML = '<tr>' + cols.map(([label, key, kind, imgHide])=>{
     if(!key){ const cls = kind === 'eval' ? 'eval-col' : (kind === 'del' ? 'del-col' : ''); return `<th class="${cls}">${label}</th>`; }
-    return `<th class="sortable" data-sort="${key}">${label}<span class="sort-arrow" id="arrow-${key}"></span></th>`;
+    const hideCls = imgHide ? ' img-hide' : '';
+    return `<th class="sortable${hideCls}" data-sort="${key}">${label}<span class="sort-arrow" id="arrow-${key}"></span></th>`;
   }).join('') + '</tr>';
 
   let list = buildRows();
@@ -968,8 +969,8 @@ function render(){
           <td class="num">${fmtInt(r.スコア)}</td>
           <td class="rank">${r.ランク}</td>
           <td class="num">${r.maxed ? '<span class="muted">-</span>' : fmtInt(r.次スコア)}</td>
-          <td class="num">${r.maxed ? '<span class="muted">-</span>' : fmtInt(r.あと)}</td>
           <td class="rank">${r.maxed ? '<span class="muted">-</span>' : r.次ランク}</td>
+          <td class="num gain">${r.maxed ? '<span class="muted">-</span>' : '+' + fmtInt(r.あと)}</td>
           <td class="num">${r.レート値 == null ? '-' : r.レート値.toFixed(3)}</td>
           <td class="num gain">${r.加点 == null ? '<span class="muted">-</span>' : '+' + r.加点.toFixed(3)}</td>
           <td class="eval-col">${tier}</td>
@@ -1051,7 +1052,7 @@ async function captureFitted(){
   const headCells = Array.from(tableClone.querySelectorAll('thead th'));
   const dropIndexes = [];
   headCells.forEach((th, i)=>{
-    if(th.classList.contains('eval-col') || th.classList.contains('del-col')) dropIndexes.push(i);
+    if(th.classList.contains('eval-col') || th.classList.contains('del-col') || th.classList.contains('img-hide')) dropIndexes.push(i);
   });
   dropIndexes.sort((a,b)=>b-a);
   const keptColCount = headCells.length - dropIndexes.length;
