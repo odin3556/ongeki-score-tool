@@ -151,7 +151,10 @@
   .goal-pct .big{font-size:18px;}
   .goal-bar-wrap{height:8px;background:#e6eaf2;border-radius:5px;overflow:hidden;margin-top:8px;}
   .goal-bar{height:100%;background:linear-gradient(90deg,#7fd94f,#00a86b);border-radius:5px;transition:width .3s;}
-  .goal-songs{margin-top:12px;max-height:280px;overflow-y:auto;}
+  .goal-sort{margin-top:10px;font-size:11.5px;color:#5f6673;display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
+  .goal-sort .sort-btn{font-size:11px;padding:3px 9px;border-radius:12px;}
+  .goal-sort .sort-btn.active{background:#00875a;color:#fff;border-color:#00875a;}
+  .goal-songs{margin-top:8px;max-height:280px;overflow-y:auto;}
   .goal-song-row{display:flex;align-items:center;gap:8px;padding:7px 4px;border-bottom:1px solid #eef0f5;font-size:12.5px;}
   .goal-song-row .g-main{flex:1;min-width:0;}
   .goal-song-row .g-title{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600;}
@@ -1106,6 +1109,26 @@ const GOAL_STORE_KEY = 'ongeki_goals_v1';
 let GOALS = [];
 try{ GOALS = JSON.parse(localStorage.getItem(GOAL_STORE_KEY) || '[]'); }catch(e){ GOALS = []; }
 function saveGoals(){ try{ localStorage.setItem(GOAL_STORE_KEY, JSON.stringify(GOALS)); }catch(e){} }
+
+// 目標カードごとの曲一覧の並び順（差分順 / 定数の低い順 / 定数の高い順）。ページ内のみ保持。
+const GOAL_SORT = {};
+function sortPendingSongs(pending, mode){
+  const arr = pending.slice();
+  if(mode === 'const_asc' || mode === 'const_desc'){
+    const dir = mode === 'const_asc' ? 1 : -1;
+    arr.sort((a,b)=>{
+      const ac = a.s.const, bc = b.s.const;
+      if(ac == null && bc == null) return 0;
+      if(ac == null) return 1;   // 定数不明は末尾
+      if(bc == null) return -1;
+      return (ac - bc) * dir;
+    });
+    return arr;
+  }
+  arr.sort((a,b)=> a.need - b.need); // 既定: 差分の小さい順
+  return arr;
+}
+
 function rankThreshold(rankName){ const t = RANK_TIERS.find(([,n])=> n === rankName); return t ? t[0] : null; }
 
 document.querySelectorAll('.page-btn').forEach(btn=>{
@@ -1282,7 +1305,8 @@ function renderGoals(){
     const card = document.createElement('div');
     card.className = 'goal-card' + (remain === 0 ? ' done' : '');
 
-    const pending = rows.filter(r=> !r.isDone).sort((a,b)=> a.need - b.need);
+    const sortMode = GOAL_SORT[goal.id] || 'gap';
+    const pending = sortPendingSongs(rows.filter(r=> !r.isDone), sortMode);
     const targetLabel = isStarGoal
       ? `★${goal.target}以上`
       : (goal.cond.kind === 'rank'
@@ -1293,7 +1317,11 @@ function renderGoals(){
     if(remain === 0){
       songsHtml = `<div class="goal-done-msg">🎉 この目標は全曲達成しました！</div>`;
     }else{
-      songsHtml = `<div class="goal-songs">` + pending.map(r=>{
+      const sortOptions = [['gap','差分の近い順'],['const_asc','定数の低い順'],['const_desc','定数の高い順']];
+      const sortBar = `<div class="goal-sort">並び順:` + sortOptions.map(([mode,label])=>
+        `<button type="button" class="sort-btn${sortMode===mode?' active':''}" data-sort-goal="${goal.id}" data-sort-mode="${mode}">${label}</button>`
+      ).join('') + `</div>`;
+      songsHtml = sortBar + `<div class="goal-songs">` + pending.map(r=>{
         const constMeta = r.s.const != null ? `<span class="g-const">定数${Number(r.s.const).toFixed(1)}</span>` : '<span class="g-const est">定数?</span>';
         const scoresHtml = isStarGoal
           ? (()=>{
@@ -1351,6 +1379,13 @@ function renderGoals(){
       <div class="goal-bar-wrap"><div class="goal-bar" style="width:${pct}%"></div></div>
       ${songsHtml}`;
     host.appendChild(card);
+  });
+
+  host.querySelectorAll('[data-sort-mode]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      GOAL_SORT[Number(btn.dataset.sortGoal)] = btn.dataset.sortMode;
+      renderGoals();
+    });
   });
 
   host.querySelectorAll('[data-check]').forEach(el=>{
