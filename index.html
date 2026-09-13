@@ -177,6 +177,9 @@
     font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10.5px;line-height:1.5;
     max-height:260px;overflow:auto;white-space:pre;}
 
+  .inner-box{margin-top:16px;padding:14px;border:1px solid #dfe3ec;border-radius:8px;background:#f6f8fb;}
+  .inner-box-title{margin:0 0 6px;font-size:13.5px;font-weight:700;color:#1d2129;}
+
   footer{margin-top:16px;color:#5f6673;font-size:11px;line-height:1.8;}
   footer .legal{margin:14px 0 0;padding-top:12px;border-top:1px solid #dfe3ec;color:#5f6673;}
   footer .legal a{color:#07714a;}
@@ -293,7 +296,7 @@
 
   <div id="settingsPage" style="display:none;">
     <p class="goal-hint" style="margin:0 0 14px;">
-      スコアの取得には、<a href="https://ongeki-score.net/" target="_blank" rel="noopener noreferrer">ongeki-score.net</a> のスコアデータを取得するブックマークレットを使います。<strong>①のブックマークレット</strong>を登録し、自分のユーザーページで実行するだけで、このツールに読み込める <code>*_ongeki_log.json</code> がダウンロードされます。JSONには譜面定数・レート値が含まれ、欠けている定数だけを<strong>③の定数表</strong>で自動補完します。ブックマークレットがうまく動かない場合は <strong>②のコンソール貼り付け</strong>をお使いください（どちらも取得内容は同じです）。
+      スコアの取得には、<a href="https://ongeki-score.net/" target="_blank" rel="noopener noreferrer">ongeki-score.net</a> のスコアデータを取得するブックマークレットを使います。<strong>①のブックマークレット</strong>を登録し、自分のユーザーページで実行するだけで、このツールに読み込める <code>*_ongeki_log.json</code> がダウンロードされます。JSONには譜面定数・レート値が含まれ、欠けている定数だけを<strong>②の定数表</strong>で自動補完します。ブックマークレットがうまく動かない場合は、①内の<strong>「コンソールで実行」</strong>をお使いください（どちらも取得内容は同じです）。
     </p>
 
     <div class="goal-create">
@@ -319,29 +322,29 @@
       </p>
       <p class="goal-hint" style="margin:10px 0 0;background:#fff8e1;border:1px solid #f0e1a8;border-radius:6px;padding:10px 12px;">
         ⚠️ このブックマークレットは <strong>ongeki-score.net（自分のユーザーページ）を開いた状態</strong>で実行してください。別サイトや <code>chrome://</code> から始まるブラウザ内部ページで実行すると、同一オリジンでの取得ができず失敗します。<br>
-        サイト側のセキュリティ設定（CSP）でブックマークレットがブロックされる場合は、下の「② コンソールに貼り付け」をお使いください。
+        サイト側のセキュリティ設定（CSP）でブックマークレットがブロックされる場合は、下記の「コンソールで実行」をお使いください。
       </p>
+
+      <div class="inner-box">
+        <h3 class="inner-box-title">🖥️ ブックマークレットが動かない場合: コンソールで実行</h3>
+        <p class="goal-hint">
+          取得できる内容は上のブックマークレットと同じです。<a href="https://ongeki-score.net/" target="_blank" rel="noopener noreferrer">ongeki-score.net</a> の<strong>自分のユーザーページ</strong>を開いた状態で、DevToolsのコンソールに下のスクリプトを貼り付けて実行してください。
+        </p>
+        <p style="margin:8px 0;">
+          <button type="button" id="copyScriptBtn" class="primary">スクリプトをコピー</button>
+          <a href="ongeki_collect_console.js" target="_blank" rel="noopener noreferrer" style="margin-left:8px;">ongeki_collect_console.js を開く</a>
+          <span class="status" id="copyScriptStatus" style="display:inline-block;margin-left:8px;"></span>
+        </p>
+        <p class="goal-hint" style="margin:0 0 8px;">
+          <strong>手順</strong>: ①「スクリプトをコピー」を押す → ② ユーザーページで <strong>F12（またはCtrl+Shift+I）</strong>でDevToolsを開き「Console」タブへ → ③ コンソールに貼り付けて Enter → ④ 数十秒待つと <code>*_ongeki_log.json</code> がダウンロードされます。<br>
+          ※ 初回はコンソールに貼り付け制限の確認が出ることがあります。指示に従って <code>allow pasting</code> と入力すると貼り付けられるようになります。
+        </p>
+        <pre class="code" id="collectScript">（スクリプトを読み込み中…）</pre>
+      </div>
     </div>
 
     <div class="goal-create">
-      <h2 class="goal-h2">② コンソールに貼り付け（別の方法）</h2>
-      <p class="goal-hint">
-        ブックマークレットが動かない環境向けの方法です。取得できる内容は①と同じです。<a href="https://ongeki-score.net/" target="_blank" rel="noopener noreferrer">ongeki-score.net</a> の<strong>自分のユーザーページ</strong>を開いた状態で、DevToolsのコンソールに下のスクリプトを貼り付けて実行してください。
-      </p>
-      <p style="margin:8px 0;">
-        <button type="button" id="copyScriptBtn" class="primary">スクリプトをコピー</button>
-        <a href="ongeki_collect_console.js" target="_blank" rel="noopener noreferrer" style="margin-left:8px;">ongeki_collect_console.js を開く</a>
-        <span class="status" id="copyScriptStatus" style="display:inline-block;margin-left:8px;"></span>
-      </p>
-      <p class="goal-hint" style="margin:0 0 8px;">
-        <strong>手順</strong>: ①「スクリプトをコピー」を押す → ② ユーザーページで <strong>F12（またはCtrl+Shift+I）</strong>でDevToolsを開き「Console」タブへ → ③ コンソールに貼り付けて Enter → ④ 数十秒待つと <code>*_ongeki_log.json</code> がダウンロードされます。<br>
-        ※ 初回はコンソールに貼り付け制限の確認が出ることがあります。指示に従って <code>allow pasting</code> と入力すると貼り付けられるようになります。
-      </p>
-      <pre class="code" id="collectScript">（スクリプトを読み込み中…）</pre>
-    </div>
-
-    <div class="goal-create">
-      <h2 class="goal-h2">③ 譜面定数データについて</h2>
+      <h2 class="goal-h2">② 譜面定数データについて</h2>
       <p class="goal-hint">
         譜面定数・レート値は基本的に ongeki-score.net が算出した値をそのまま使いますが、定数が未確定・欠落している曲を補うため、<a href="https://reiwa.f5.si/" target="_blank" rel="noopener noreferrer">音ゲーツール置き場</a> が公開している定数表（<a href="https://reiwa.f5.si/ongeki_record.json" target="_blank" rel="noopener noreferrer">ongeki_record.json</a>）をこのツールが自動で取得し、musicIdと難易度で結合して補完します。取得した定数表はこのブラウザに一時キャッシュ（localStorage・約1.2MB／7日間）され、次回以降の読み込みを高速化します。<br>
         補完は「サイト側に定数が無い曲」と「サイト側が推定扱いだが定数表では確定している曲」に限り、サイト側の確定値はそのまま尊重します。
