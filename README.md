@@ -73,8 +73,11 @@ index.html                    ツール本体（読み込み・集計・表示�
 bookmarklet/
   README.md                   ブックマークレットの登録・使い方・トラブルシューティング
   bookmarklet.txt             ブラウザのブックマークに登録する一行版スクリプト
-ongeki_collect_console.js     読みやすい形式のスクリプト（DevToolsコンソールにも貼り付け可）
+ongeki_collect_console.js     読みやすい形式のスクリプト（DevToolsコンソールにも貼り付け可）。
+                              「データ取得」タブが fetch で読み込み、「スクリプトをコピー」ボタンやリンクの参照先にもなる
 ```
+
+`ongeki_collect_console.js` は `index.html` と同じ場所に置いてください。無いと「データ取得」タブのコピーボタンが「スクリプトの自動読み込みに失敗しました」となり、リンクも 404 になります。また `index.html` を `file://` で直接開くとブラウザの制限で読み込めないことがあるため、ローカルで確認する場合は `python -m http.server` などで配信してください（GitHub Pages ではそのまま動きます）。
 
 ## 注意事項
 
